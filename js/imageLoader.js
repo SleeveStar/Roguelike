@@ -59,10 +59,9 @@ export function preloadGameAssets() {
         // Load Tile Images
         tileTypes.forEach(tileName => {
             const img = new Image();
-            const path = `./img/${tileName}.png`;
             img.onload = imageLoadHandler;
             img.onerror = imageErrorHandler;
-            img.src = path;
+            img.src = new URL(`../img/${tileName}.png`, import.meta.url).href;
             tileImageCache[tileName] = img;
         });
 
@@ -70,13 +69,12 @@ export function preloadGameAssets() {
         MONSTER_TYPES.forEach(monsterInfo => {
             const img = new Image();
             const monsterName = monsterInfo.name;
-            const path = `./img/${monsterName}.png`;
             img.onload = () => {
                 console.log(`${monsterName}.png loaded successfully.`);
                 imageLoadHandler();
             };
             img.onerror = imageErrorHandler;
-            img.src = path;
+            img.src = new URL(`../img/${monsterName}.png`, import.meta.url).href;
             monsterImageCache[monsterName] = img;
         });
     });

@@ -1,10 +1,16 @@
 // constants.js
 export const TILE_SIZE = 40;
 export const PLAYER_COLOR = 'blue';
-export const PLAYER_IMAGE_PATH = './img/CHARACTER.png';
+// export const PLAYER_IMAGE_PATH = './img/CHARACTER.png';
+export const PLAYER_IMAGE_PATH =
+  new URL('../img/CHARACTER.png', import.meta.url).href;
 export const MERCHANT_COLOR = '#8B4513';
-export const GOLD_ICON_PATH = './img/GOLD_COIN.png';
-export const HEALING_BLOCK_IMAGE_PATH = './img/MEDI_KIT.png';
+// export const GOLD_ICON_PATH = './img/GOLD_COIN.png';
+export const GOLD_ICON_PATH =
+  new URL('../img/GOLD_COIN.png', import.meta.url).href;
+// export const HEALING_BLOCK_IMAGE_PATH = './img/MEDI_KIT.png';
+export const HEALING_BLOCK_IMAGE_PATH =
+  new URL('../img/MEDI_KIT.png', import.meta.url).href;
 
 export const MONSTER_SPAWN_COUNT = 5;
 export const HEALING_BLOCK_CHANCE = 0.05;
