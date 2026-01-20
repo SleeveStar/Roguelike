@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Roguelike</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="//spoqa.github.io/spoqa-han-sans/css/SpoqaHanSansNeo.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+    <h1>Web Roguelike</h1>
+    <div id="gameContainer">
+        <div id="playerStatus">
+            <h2>플레이어 정보</h2>
+            <div class="stat-group">
+                <div class="stat-item">레벨: <span id="statLevel">1</span></div>
+                
+                <div id="playerStatusHpBarContainer" class="status-bar-container">
+                    <div id="playerStatusHpBar" class="status-bar-fill"></div>
+                    <span class="bar-text-overlay">체력: <span id="statHp">100</span>/<span id="statMaxHp">100</span></span>
+                </div>
+
+                <div id="playerStatusMpBarContainer" class="status-bar-container">
+                    <div id="playerStatusMpBar" class="status-bar-fill"></div>
+                    <span class="bar-text-overlay">마나: <span id="statMp">50</span>/<span id="statMaxMp">50</span></span>
+                </div>
+            </div>
+
+            <div class="stat-group">
+                <h3>기본 스탯</h3>
+                <div class="stat-item">힘: <span id="statStrength">5</span> <button class="allocate-btn" data-stat="strength" disabled>+</button></div>
+                <div class="stat-item">지능: <span id="statIntelligence">5</span> <button class="allocate-btn" data-stat="intelligence" disabled>+</button></div>
+                <div class="stat-item">민첩: <span id="statAgility">5</span> <button class="allocate-btn" data-stat="agility" disabled>+</button></div>
+                <div class="stat-item">체력: <span id="statVitality">5</span> <button class="allocate-btn" data-stat="vitality" disabled>+</button></div>
+                <div class="stat-item">정신력: <span id="statMentality">5</span> <button class="allocate-btn" data-stat="mentality" disabled>+</button></div>
+                <div class="stat-item">운: <span id="statLuck">5</span> <button class="allocate-btn" data-stat="luck" disabled>+</button></div>
+            </div>
+
+            <div class="stat-group">
+                <h3>전투 스탯</h3>
+                <div class="stat-item">물리 공격력: <span id="statPA">10</span></div>
+                <div class="stat-item">마법 공격력: <span id="statMA">10</span></div>
+                <div class="stat-item">원거리 공격력: <span id="statRA">0</span></div>
+                <div class="stat-item">물리 방어력: <span id="statPD">5</span></div>
+                <div class="stat-item">마법 방어력: <span id="statMD">5</span></div>
+                <div class="stat-item">속도: <span id="statSpeed">10</span></div>
+                <div class="stat-item">치명타 확률: <span id="statCritChance">0%</span></div>
+                <div class="stat-item">치명타 데미지: <span id="statCritDamage">150%</span></div>
+                <div class="stat-item">회피율: <span id="statEvasion">0%</span></div>
+            </div>
+
+            <div class="stat-group bonus-points-section">
+                <div class="stat-item">보너스 스탯: <span id="statBonusPoints">0</span></div>
+                <div class="stat-item">골드: <span id="statGold">0</span></div>
+            </div>
+
+            <div id="xpBarContainer">
+                <div id="xpBar"></div>
+                <span class="bar-text-overlay">경험치: <span id="currentXP">0</span>/<span id="maxXP">100</span></span>
+            </div>
+            
+            <div class="player-actions">
+                <button id="inventoryBtn" class="action-btn">인벤토리</button>
+            </div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="infoPanel">
+            <h2>정보</h2>
+            <div id="side-panel-equipment-container">
+                <h3>장착 중인 장비</h3>
+                <div id="side-panel-equipment">
+                    <!-- Equipment will be rendered here by ui.js -->
+                </div>
+            </div>
+            <h3>전투 로그</h3>
+            <div id="infoLog">
+            </div>
+        </div>
+    </div>
+
+    <div id="inventoryOverlay" class="hidden">
+        <div id="inventoryPanel">
+            <button id="closeInventoryBtn" class="close-btn">X</button>
+            <h2>인벤토리</h2>
+            <div id="inventoryContent">
+                <div id="equipmentSection">
+                    <h3>장비</h3>
+                    <div class="equipment-slots">
+                        <div class="eq-slot hat" data-slot="hat">모자</div>
+                        <div class="eq-slot neck" data-slot="neck">목걸이</div>
+                        <div class="eq-slot shoulder" data-slot="shoulder">어깨</div>
+                        <div class="eq-slot main-hand" data-slot="mainWeapon">주무기</div>
+                        <div class="eq-slot chest" data-slot="chest">상의</div>
+                        <div class="eq-slot off-hand" data-slot="subWeapon">보조무기</div>
+                        <div class="eq-slot wrist" data-slot="wrist">손목</div>
+                        <div class="eq-slot legs" data-slot="legs">하의</div>
+                        <div class="eq-slot ring1" data-slot="ring1">반지 1</div>
+                        <div class="eq-slot ring2" data-slot="ring2">반지 2</div>
+                        <div class="eq-slot feet" data-slot="feet">신발</div>
+                    </div>
+                </div>
+                <div id="bagSection">
+                    <h3>소지품</h3>
+                    <div class="bag-grid">
+                    </div>
+                    <div class="pagination-controls">
+                        <button id="prevPageBtn" class="action-btn">이전</button>
+                        <span id="pageNumberDisplay">1 / 1</span>
+                        <button id="nextPageBtn" class="action-btn">다음</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="merchantOverlay" class="hidden">
+        <div id="merchantPanel">
+            <button id="closeMerchantBtn" class="close-btn">X</button>
+            <h2>떠돌이 상인</h2>
+            <div id="merchantContent">
+                <div id="merchantStockSection">
+                    <h3>판매 아이템</h3>
+                    <div class="merchant-grid">
+                    </div>
+                </div>
+                <div id="playerSellSection">
+                    <h3>내 아이템 (판매)</h3>
+                    <div class="player-sell-grid">
+                    </div>
+                </div>
+            </div>
+            <div id="merchantPlayerGold">
+                소지 골드: <span id="merchantPlayerGoldAmount">0</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="itemTooltip" class="hidden">
+        <div id="tooltip-hovered">
+        </div>
+        <div id="tooltip-equipped">
+        </div>
+    </div>
+
+    <div id="levelUpModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>레벨 업!</h2>
+            <p>레벨이 올랐습니다! 스탯 포인트를 분배하세요:</p>
+            <div class="stat-allocation hidden">
+            </div>
+            <button id="closeLevelUpModal">계속</button>
+        </div>
+    </div>
+
+    <div id="restartModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>게임 오버!</h2>
+            <p>최종 점수 (골드): <span id="finalScore">0</span></p>
+            <button id="restartButton">다시 시작</button>
+        </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+
+    <div id="pokemonBattleOverlay" class="hidden">
+        <div id="battleMonsterArea">
+            <div id="battleMonsterStatus" class="battle-status-box">
+                <div class="status-name-level">
+                    <span id="battleMonsterName">Monster</span>
+                    <span>Lv.<span id="battleMonsterLevel">1</span></span>
+                </div>
+                <div class="battle-hp-bar-container">
+                    <div id="battleMonsterHpBar" class="battle-hp-bar-fill"></div>
+                    <span class="battle-bar-text-overlay"><span id="battleMonsterHp">100</span>/<span id="battleMonsterMaxHp">100</span></span>
+                </div>
+            </div>
+            <img id="battleMonsterSprite" src="" alt="Monster Sprite">
+        </div>
+
+        <div id="battlePlayerArea">
+            <img id="battlePlayerSprite" src="" alt="Player Sprite">
+            <div id="battlePlayerStatus" class="battle-status-box">
+                <div class="status-name-level">
+                    <span id="battlePlayerName">Player</span>
+                    <span>Lv.<span id="battlePlayerLevel">1</span></span>
+                </div>
+                <div class="battle-hp-bar-container">
+                    <div id="battlePlayerHpBar" class="battle-hp-bar-fill"></div>
+                     <span class="battle-bar-text-overlay">HP: <span id="battlePlayerHp">100</span>/<span id="battlePlayerMaxHp">100</span></span>
+                </div>
+                <div class="battle-mp-bar-container">
+                    <div id="battlePlayerMpBar" class="battle-mp-bar-fill"></div>
+                    <span class="battle-bar-text-overlay">MP: <span id="battlePlayerMp">50</span>/<span id="battlePlayerMaxMp">50</span></span>
+                </div>
+            </div>
+        </div>
+
+        <div id="battleActionBar">
+            <div id="battleLog"></div>
+            <div id="battleButtons">
+                <button id="battleAttackBtn" class="battle-action-btn">공격</button>
+                <button id="battleAutoAttackBtn" class="battle-action-btn">자동 공격</button>
+                <button id="battleRunAwayBtn" class="battle-action-btn">도망가기</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
