@@ -56,7 +56,7 @@ export function preloadGameAssets() {
         healingBlockImage.onerror = imageErrorHandler;
         healingBlockImage.src = HEALING_BLOCK_IMAGE_PATH;
 
-        // Load Tile Images
+        // Load Tile Images 원본과 다름
         tileTypes.forEach(tileName => {
             const img = new Image();
             img.onload = imageLoadHandler;
@@ -65,7 +65,7 @@ export function preloadGameAssets() {
             tileImageCache[tileName] = img;
         });
 
-        // Load Monster Images
+        // Load Monster Images 원본과 다름
         MONSTER_TYPES.forEach(monsterInfo => {
             const img = new Image();
             const monsterName = monsterInfo.name;
