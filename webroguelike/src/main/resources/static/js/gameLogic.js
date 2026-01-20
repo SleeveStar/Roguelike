@@ -1,0 +1,1254 @@
+// gameLogic.js
+import { gameState, resetGameState } from './gameState.js';
+import { TILE_SIZE, MONSTER_TIERS, MONSTER_TYPES, BOSS_CHANCE_PERCENT, XP_GAIN_MULTIPLIER, ESCAPE_CHANCE, LEVEL_UP_STAT_POINTS, RARITY_CONFIG, BASE_ITEMS, AFFIX_TYPES, ELEMENTAL_TYPES, INVENTORY_SIZE, ITEM_DROP_CHANCE, TREASURE_CHEST_CHANCE, AFFIX_PREFIXES, UNIQUE_ITEM_NAMES_BY_RARITY_AND_SLOT, EQUIPMENT_SETS } from './constants.js';
+import { getRandomEmptyTile, findWalkableTileOnEdge } from './utils.js';
+import { 
+    logCombatMessage, updateStatusDisplay, createTooltipContent, showItemTooltip, 
+    hideItemTooltip, renderBagGrid, renderEquipment, renderMerchantStock, 
+    renderPlayerSellInventory, updateMerchantPlayerGoldDisplay, drawGame, 
+    initPokemonBattleUI, updatePokemonBattlePlayerUI, updatePokemonBattleMonsterUI,
+    renderSidePanelEquipment
+} from './ui.js';
+import { transitionMap } from './map.js';
+import { gameContainer, gameCanvas, levelUpModal, restartModal, finalScoreSpan, merchantOverlayElement, itemTooltipElement, bagGridElement, pokemonBattleOverlay, battleAttackBtn, battleAutoAttackBtn, battleRunAwayBtn } from './domElements.js';
+
+
+export function calculateGoldDrop(monster) {
+    const tierInfo = MONSTER_TIERS[monster.tier];
+    let gold = tierInfo.base_gold_drop * monster.level;
+    if (monster.isBoss) {
+        gold *= 2;
+    }
+    gold = Math.floor(gold * (0.8 + Math.random() * 0.4));
+
+    // Apply Gold Find from player's luck
+    const goldFind = gameState.playerStats.derived.goldFind || 0;
+    gold = Math.floor(gold * (1 + goldFind));
+
+    return gold;
+}
+
+export function recalculateDerivedStats() {
+    const baseStats = gameState.playerStats.base;
+    const equipment = gameState.playerStats.equipment;
+
+    // 1. Consolidate ALL primary stats from base, item.stats, and item.affixes
+    const totalStats = { ...baseStats };
+    for (const slot in equipment) {
+        const item = equipment[slot];
+        if (!item) continue;
+
+        // Add stats from the base item roll
+        if (item.stats) {
+            for (const stat in item.stats) {
+                totalStats[stat] = (totalStats[stat] || 0) + item.stats[stat];
+            }
+        }
+        // Add primary stats from affixes
+        if (item.affixes) {
+            item.affixes.forEach(affix => {
+                const affixDefinition = AFFIX_TYPES[affix.type];
+                if (affixDefinition && affixDefinition.type === 'stat') {
+                    totalStats[affixDefinition.stat] = (totalStats[affixDefinition.stat] || 0) + affix.value;
+                }
+            });
+        }
+    }
+
+    // 2. Initialize derived stats with base values
+    const derived = {
+        id: 'player',
+        maxHp: 50,
+        maxMp: 20,
+        physicalAttack: 0,
+        magicalAttack: 0,
+        rangedAttack: 0,
+        physicalDefense: 0,
+        magicalDefense: 0,
+        speed: 0,
+        evasion: 0,
+        critChance: 0.05,
+        critDamage: 1.5,
+        elementalDamageBonus: 0,
+        magicFind: 0,
+        goldFind: 0,
+        lifesteal: 0,
+        statusEffects: [],
+        elementalDamage: { fire: 0, ice: 0, poison: 0, lightning: 0, dark: 0 }, // Initialize dark elemental damage
+        setBonuses: [], // New: to store active set bonuses
+        physicalBlockChance: 0 // New: Initialize physical block chance
+    };
+
+    // 3. Apply primary-to-derived stat formulas using the final totalStats
+    derived.physicalAttack += totalStats.strength * 2;
+    derived.physicalDefense += Math.floor(totalStats.strength * 0.5);
+    derived.maxHp += totalStats.strength * 2;
+
+    derived.magicalAttack += totalStats.intelligence * 2;
+    derived.maxMp += totalStats.intelligence * 1;
+    derived.magicalDefense += Math.floor(totalStats.intelligence * 0.5);
+    
+    derived.speed += totalStats.agility * 1;
+    derived.evasion += totalStats.agility * 0.002;
+    derived.physicalAttack += Math.floor(totalStats.agility * 0.5);
+    derived.critChance += totalStats.agility * 0.001;
+    derived.rangedAttack += totalStats.agility * 2;
+    derived.rangedAttack += totalStats.strength * 0.5;
+
+    derived.maxHp += totalStats.vitality * 10;
+    derived.physicalDefense += totalStats.vitality * 1;
+    derived.physicalAttack += Math.floor(totalStats.vitality * 0.2);
+
+    derived.maxMp += totalStats.mentality * 5;
+    derived.elementalDamageBonus += totalStats.mentality * 0.005;
+    derived.magicalAttack += Math.floor(totalStats.mentality * 0.5);
+    derived.magicalDefense += totalStats.mentality * 1;
+
+    derived.critChance += totalStats.luck * 0.0025;
+    derived.critDamage += totalStats.luck * 0.01;
+    derived.magicFind += totalStats.luck * 0.015;
+    derived.goldFind += totalStats.luck * 0.03;
+
+    // 4. Apply flat bonuses and status effects from equipment affixes (non-primary stat affixes)
+    for (const slot in equipment) {
+        const item = equipment[slot];
+        if (item && item.affixes) {
+            item.affixes.forEach(affix => {
+                const affixDefinition = AFFIX_TYPES[affix.type];
+                if (!affixDefinition || affixDefinition.type === 'stat') return;
+                
+                let value = 0;
+                if (affixDefinition.minMax) {
+                    value = affix.min !== undefined ? affix.min : 0; 
+                } else if (affixDefinition.chanceVal && affix.magnitude !== undefined) {
+                    value = affix.magnitude;
+                } else if (affix.value !== undefined) {
+                    value = affix.value;
+                }
+
+                switch (affix.type) { // Use affix.type directly instead of affixDefinition.type for specific cases
+                    case 'physicalAttack': derived.physicalAttack += value; break;
+                    case 'magicalAttack': derived.magicalAttack += value; break;
+                    case 'rangedAttack': derived.rangedAttack += value; break;
+                    case 'physicalDefense': derived.physicalDefense += value; break;
+                    case 'magicalDefense': derived.magicalDefense += value; break;
+                    case 'maxHp': derived.maxHp += value; break;
+                    case 'maxMp': derived.maxMp += value; break;
+                    case 'critChance': derived.critChance += value; break;
+                    case 'critDamage': derived.critDamage += value; break;
+                    case 'lifesteal': derived.lifesteal += value; break;
+                    case 'evasion': derived.evasion = (derived.evasion || 0) + value; break; // Evasion can be added this way
+                    case 'goldFind': derived.goldFind = (derived.goldFind || 0) + value; break;
+                    case 'magicFind': derived.magicFind = (derived.magicFind || 0) + value; break;
+                    case 'speed': derived.speed = (derived.speed || 0) + value; break;
+                    case 'elementalDamageBonus': derived.elementalDamageBonus = (derived.elementalDamageBonus || 0) + value; break;
+                    case 'manaRegen': derived.manaRegen = (derived.manaRegen || 0) + value; break; // New affix type
+                    case 'hpRegen': derived.hpRegen = (derived.hpRegen || 0) + value; break; // New affix type
+                    case 'elementalDamageResistance_fire': derived.elementalResistance_fire = (derived.elementalResistance_fire || 0) + value; break; // New elemental resistance
+                    case 'elementalDamageResistance_lightning': derived.elementalResistance_lightning = (derived.elementalResistance_lightning || 0) + value; break; // New elemental resistance
+                    case 'elementalDamageResistance': derived.elementalResistance = (derived.elementalResistance || 0) + value; break; // All elemental resistance
+                    case 'statusEffectResistance': derived.statusEffectResistance = (derived.statusEffectResistance || 0) + value; break; // New status effect resistance
+
+                    case 'elementalDamage': // e.g., elementalDamage
+                        derived.elementalDamage[affix.elementType] = (derived.elementalDamage[affix.elementType] || 0) + value;
+                        break;
+                    case 'statusEffectBleed':
+                    case 'statusEffectPoison':
+                        derived.statusEffects.push({
+                            type: affixDefinition.effectType,
+                            chance: affix.chance,
+                            magnitude: affix.magnitude,
+                            duration: affix.duration
+                        });
+                        break;
+                }
+            });
+        }
+    }
+
+    // 5. Apply Set Bonuses
+    const equippedSetCounts = {};
+    const equippedSetItems = {}; // To store actual equipped set items for later use (e.g., UI highlighting)
+
+    for (const slot in equipment) {
+        const item = equipment[slot];
+        if (item && item.isSetItem && item.setId) {
+            equippedSetCounts[item.setId] = (equippedSetCounts[item.setId] || 0) + 1;
+            if (!equippedSetItems[item.setId]) {
+                equippedSetItems[item.setId] = [];
+            }
+            equippedSetItems[item.setId].push(item);
+        }
+    }
+
+    for (const setId in equippedSetCounts) {
+        const equippedCount = equippedSetCounts[setId];
+        const setDefinition = EQUIPMENT_SETS.find(set => set.id === setId);
+
+        if (setDefinition) {
+            setDefinition.bonuses.forEach(bonus => {
+                if (equippedCount >= bonus.count) {
+                    // Apply stats from set bonus
+                    if (bonus.effect.stats) {
+                        for (const stat in bonus.effect.stats) {
+                            derived[stat] = (derived[stat] || 0) + bonus.effect.stats[stat];
+                        }
+                    }
+                    // Apply affixes from set bonus
+                    if (bonus.effect.affixes) {
+                        bonus.effect.affixes.forEach(affix => {
+                            const affixDefinition = AFFIX_TYPES[affix.type];
+                            if (affixDefinition) {
+                                let value = 0;
+                                if (affix.min !== undefined) {
+                                    value = affix.min; // Use min for consistent stat (or average for damage range)
+                                } else if (affix.value !== undefined) {
+                                    value = affix.value;
+                                } else if (affix.magnitude !== undefined) {
+                                    value = affix.magnitude;
+                                }
+
+                                switch (affix.type) {
+                                    case 'physicalAttack': derived.physicalAttack += value; break;
+                                    case 'magicalAttack': derived.magicalAttack += value; break;
+                                    case 'rangedAttack': derived.rangedAttack += value; break;
+                                    case 'physicalDefense': derived.physicalDefense += value; break;
+                                    case 'magicalDefense': derived.magicalDefense += value; break;
+                                    case 'maxHp': derived.maxHp += value; break;
+                                    case 'maxMp': derived.maxMp += value; break;
+                                    case 'critChance': derived.critChance += value; break;
+                                    case 'critDamage': derived.critDamage += value; break;
+                                    case 'lifesteal': derived.lifesteal += value; break;
+                                    case 'evasion': derived.evasion = (derived.evasion || 0) + value; break;
+                                    case 'goldFind': derived.goldFind = (derived.goldFind || 0) + value; break;
+                                    case 'magicFind': derived.magicFind = (derived.magicFind || 0) + value; break;
+                                    case 'speed': derived.speed = (derived.speed || 0) + value; break;
+                                    case 'elementalDamageBonus': derived.elementalDamageBonus = (derived.elementalDamageBonus || 0) + value; break;
+                                    case 'manaRegen': derived.manaRegen = (derived.manaRegen || 0) + value; break;
+                                    case 'hpRegen': derived.hpRegen = (derived.hpRegen || 0) + value; break;
+                                    case 'elementalDamageResistance_fire': derived.elementalResistance_fire = (derived.elementalResistance_fire || 0) + value; break;
+                                    case 'elementalDamageResistance_lightning': derived.elementalResistance_lightning = (derived.elementalResistance_lightning || 0) + value; break;
+                                    case 'elementalDamageResistance': derived.elementalResistance = (derived.elementalResistance || 0) + value; break;
+                                    case 'statusEffectResistance': derived.statusEffectResistance = (derived.statusEffectResistance || 0) + value; break;
+                                    case 'elementalDamage': // Handle elemental damage from set bonus
+                                        derived.elementalDamage[affix.elementType] = (derived.elementalDamage[affix.elementType] || 0) + (affix.min !== undefined ? affix.min : affix.value);
+                                        break;
+                                    case 'statusEffectBurn': // New status effect from set
+                                    case 'statusEffectChill': // New status effect from set
+                                        derived.statusEffects.push({
+                                            type: affix.type.replace('statusEffect', '').toLowerCase(),
+                                            chance: affix.chance,
+                                            magnitude: affix.magnitude,
+                                            duration: affix.duration
+                                        });
+                                        break;
+                                }
+                            }
+                        });
+                    }
+                    // Store special effects for UI/game logic
+                    if (bonus.effect.special) {
+                        derived.setBonuses.push({
+                            setId: setId,
+                            setName: setDefinition.name,
+                            count: bonus.count,
+                            special: bonus.effect.special,
+                            color: setDefinition.color // Add set color for UI
+                        });
+                    }
+                }
+            });
+        }
+    }
+
+    // 6. Apply Unique Item Special Effects
+    for (const slot in equipment) {
+        const item = equipment[slot];
+        if (item && item.isUnique && item.specialEffects) {
+            item.specialEffects.forEach(effect => {
+                switch (effect.type) {
+                    case 'auraDefense':
+                        // This effect affects enemies, so it won't directly modify player's derived stats here.
+                        // It would be handled in enemy combat calculations or a global effect manager.
+                        // For now, we acknowledge it but don't apply it here.
+                        // logCombatMessage(`Unique Effect: ${item.name} provides Aura Defense of ${effect.value}`);
+                        break;
+                    case 'physicalBlockChance':
+                        derived.physicalBlockChance += effect.value;
+                        break;
+                    // Add other special effect types here as they are defined
+                    default:
+                        // Handle other special effects not directly applied to derived stats
+                        // e.g., onHit effects, passive buffs that need to be tracked
+                        break;
+                }
+            });
+        }
+    }
+
+    // 7. Finalization & Clamping
+    derived.maxHp = Math.floor(derived.maxHp);
+    derived.maxMp = Math.floor(derived.maxMp);
+    derived.evasion = Math.max(0, Math.min(0.75, derived.evasion));
+    derived.critChance = Math.max(0, Math.min(1, derived.critChance));
+    derived.physicalBlockChance = Math.max(0, Math.min(0.75, derived.physicalBlockChance)); // New: Clamp physicalBlockChance
+    derived.lifesteal = Math.max(0, Math.min(0.08, derived.lifesteal)); // New: Clamp lifesteal to 8%
+
+
+    // Clamp derived stats that might exceed reasonable bounds
+    derived.physicalAttack = Math.floor(derived.physicalAttack);
+    derived.magicalAttack = Math.floor(derived.magicalAttack);
+    derived.rangedAttack = Math.floor(derived.rangedAttack);
+    derived.physicalDefense = Math.floor(derived.physicalDefense);
+    derived.magicalDefense = Math.floor(derived.magicalDefense);
+    derived.speed = Math.floor(derived.speed);
+    derived.elementalDamageBonus = Math.max(0, derived.elementalDamageBonus);
+    derived.manaRegen = derived.manaRegen || 0;
+    derived.hpRegen = derived.hpRegen || 0;
+    derived.elementalResistance_fire = derived.elementalResistance_fire || 0;
+    derived.elementalResistance_lightning = derived.elementalResistance_lightning || 0;
+    derived.elementalResistance = derived.elementalResistance || 0;
+    derived.statusEffectResistance = derived.statusEffectResistance || 0;
+
+    gameState.playerStats.derived = derived;
+
+    // Clamp current HP and MP to the new maximums
+    if (gameState.playerStats.base.hp > derived.maxHp) {
+        gameState.playerStats.base.hp = derived.maxHp;
+    }
+    if (gameState.playerStats.base.mp > derived.maxMp) {
+        gameState.playerStats.base.mp = derived.maxMp; // Fix: was derived.mp
+    }
+}
+
+export function equipItem(itemIndex) {
+    const item = gameState.playerStats.inventory[itemIndex];
+    if (!item || item.type !== 'equipment') return;
+
+    let targetSlot = item.slot;
+    if (targetSlot === 'ring') {
+        if (!gameState.playerStats.equipment.ring1) {
+            targetSlot = 'ring1';
+        } else if (!gameState.playerStats.equipment.ring2) {
+            targetSlot = 'ring2';
+        } else {
+            targetSlot = 'ring1'; 
+        }
+    }
+
+    if (gameState.playerStats.equipment[targetSlot]) {
+        unequipItem(targetSlot);
+    }
+    
+    gameState.playerStats.equipment[targetSlot] = item;
+    gameState.playerStats.inventory.splice(itemIndex, 1);
+    
+    recalculateDerivedStats(); 
+    updateStatusDisplay(); 
+    renderBagGrid(bagGridElement, gameState.playerStats.inventory, false);
+    renderEquipment();
+    renderSidePanelEquipment();
+    hideItemTooltip();
+}
+
+export function unequipItem(slot) {
+    if (gameState.playerStats.inventory.length >= INVENTORY_SIZE) {
+        logCombatMessage("<span style='color: red;'>Your inventory is full! Cannot unequip item.</span>");
+        return;
+    }
+    const item = gameState.playerStats.equipment[slot];
+    if (!item) return;
+    gameState.playerStats.inventory.push(item);
+    gameState.playerStats.equipment[slot] = null;
+
+    recalculateDerivedStats(); 
+    updateStatusDisplay(); 
+    renderBagGrid(bagGridElement, gameState.playerStats.inventory, false);
+    renderEquipment(); 
+    renderSidePanelEquipment();
+    hideItemTooltip();
+}
+
+export function gainExperience(amount) {
+    gameState.playerStats.base.experience += amount;
+    logCombatMessage(`<span style="color: yellow;">You gained ${amount.toFixed(0)} XP.</span>`);
+    while (gameState.playerStats.base.experience >= gameState.playerStats.base.experienceToNextLevel) {
+        gameState.playerStats.base.experience -= gameState.playerStats.base.experienceToNextLevel;
+        levelUp();
+    }
+    updateStatusDisplay();
+}
+
+export function levelUp() {
+    const base = gameState.playerStats.base;
+    base.level++; base.availableStatPoints += LEVEL_UP_STAT_POINTS;
+    base.experienceToNextLevel = base.level * 100 + 50; 
+    
+    recalculateDerivedStats(); // Recalculate stats to get new max HP/MP
+    base.hp = gameState.playerStats.derived.maxHp; // Heal to full on level up
+    base.mp = gameState.playerStats.derived.maxMp;
+    
+    logCombatMessage(`<span style="color: yellow;">LEVEL UP! You are now Level ${base.level}!</span>`);
+    updateStatusDisplay();
+}
+
+export function allocateStatPoint(statName) {
+    const base = gameState.playerStats.base;
+    if (base.availableStatPoints > 0) {
+        if (base.hasOwnProperty(statName)) {
+            base[statName]++; 
+            base.availableStatPoints--;
+            recalculateDerivedStats(); 
+            updateStatusDisplay();
+        }
+    }
+}
+
+export function calculateDamage(attacker, defender, attackType, playerEquipment = {}) {
+    // Evasion Check
+    if (defender.derived && defender.derived.evasion > 0) {
+        if (Math.random() < defender.derived.evasion) {
+            logCombatMessage(`${defender.name || 'Player'} evaded the attack!`);
+            return { damage: 0, isCritical: false, isEvaded: true };
+        }
+    }
+
+    const attackerStats = attacker; // attacker는 이미 파생 스탯 객체 또는 몬스터 객체
+    const defenderStats = defender; // defender는 이미 파생 스탯 객체 또는 몬스터 객체
+    
+    // 방어 로직은 그대로 유지 (attacker, defender 자체가 null/undefined일 경우 대비)
+    if (!attackerStats || !defenderStats) {
+        // console.error("calculateDamage: Attacker or Defender object is null/undefined. This should not happen.", { attacker, defender, attackerStats, defenderStats }); // 디버그 로그 제거
+        return { damage: 0, isCritical: false, isEvaded: false };
+    }
+
+    let attack, defense;
+    if (attackType === 'physical') {
+        attack = attackerStats.physicalAttack || 0;
+        defense = defenderStats.physicalDefense || 0;
+    } else if (attackType === 'magical') {
+        attack = attackerStats.magicalAttack || 0;
+        defense = defenderStats.magicalDefense || 0;
+    } else if (attackType === 'ranged') { // New ranged attack type
+        // Use the pre-calculated rangedAttack from derived stats
+        attack = attackerStats.rangedAttack || 0; // Derived rangedAttack will be used
+        defense = defenderStats.physicalDefense || 0; // Ranged attacks use physical defense
+        logCombatMessage(`Ranged Attack!`); // For debugging/testing
+    }
+
+    // Apply Aura Defense from player's unique items if player is attacker and target is monster
+    if (attacker.id === 'player' && defender.id !== 'player' && playerEquipment) {
+        for (const slot in playerEquipment) {
+            const item = playerEquipment[slot];
+            if (item && item.isUnique && item.specialEffects) {
+                item.specialEffects.forEach(effect => {
+                    if (effect.type === 'auraDefense') {
+                        defense = Math.max(0, defense - effect.value);
+                    }
+                });
+            }
+        }
+    }
+
+    // Ensure attack and defense are numbers
+    attack = typeof attack === 'number' ? attack : 0;
+    defense = typeof defense === 'number' ? defense : 0;
+
+
+    // Critical Hit Check
+    const critChance = attackerStats.critChance || 0;
+    const isCritical = Math.random() < critChance;
+    
+    let baseDamage = Math.max(1, attack - defense);
+    
+    // Apply critical damage if it's a critical hit
+    if (isCritical) {
+        const critDamage = attackerStats.critDamage || 1.5;
+        baseDamage *= critDamage;
+    }
+
+    // Apply variance
+    baseDamage *= (0.9 + Math.random() * 0.2); 
+    
+    // Handle elemental damage
+    let elementalDamageValue = 0;
+    if (attackerStats.elementalDamage) {
+        for (const type in attackerStats.elementalDamage) {
+            elementalDamageValue += attackerStats.elementalDamage[type];
+        }
+    }
+
+    // Apply elemental damage bonus
+    if (attackerStats.elementalDamageBonus > 0) {
+        elementalDamageValue *= (1 + attackerStats.elementalDamageBonus);
+    }
+    
+    let finalDamage = baseDamage + elementalDamageValue;
+    finalDamage = Math.floor(finalDamage);
+
+    // Lifesteal
+    if (attackerStats.lifesteal > 0 && attacker.id === 'player') {
+        const healedAmount = Math.floor(finalDamage * attackerStats.lifesteal);
+        gameState.playerStats.base.hp = Math.min(gameState.playerStats.derived.maxHp, gameState.playerStats.base.hp + healedAmount);
+        logCombatMessage(`<span style="color: lightgreen;">You lifesteal ${healedAmount} HP!</span>`);
+        updateStatusDisplay(); // 메인 스탯 패널 업데이트
+        updatePokemonBattlePlayerUI(); // 전투 UI의 플레이어 HP 바 업데이트
+    }
+    
+    // Apply Status Effects on hit
+    if (attackerStats.statusEffects && attackerStats.statusEffects.length > 0) {
+        attackerStats.statusEffects.forEach(effect => {
+            if (Math.random() < effect.chance) {
+                applyStatusEffect(defender, { ...effect });
+            }
+        });
+    }
+
+    return { damage: finalDamage, isCritical: isCritical, isEvaded: false };
+}
+
+
+export function applyStatusEffect(target, effect) {
+    if (!target.statusEffects) target.statusEffects = [];
+    
+    const existingEffectIndex = target.statusEffects.findIndex(e => e.type === effect.type);
+    if (existingEffectIndex !== -1) {
+        target.statusEffects[existingEffectIndex].duration = effect.duration;
+        target.statusEffects[existingEffectIndex].magnitude = Math.max(target.statusEffects[existingEffectIndex].magnitude, effect.magnitude);
+        logCombatMessage(`${target.name || "Player"} ${effect.type} effect refreshed!`);
+    } else {
+        target.statusEffects.push({ ...effect, currentDuration: effect.duration });
+        logCombatMessage(`${target.name || "Player"} is now ${effect.type}ing!`);
+    }
+}
+
+export function processStatusEffects(entity) {
+    if (!entity.statusEffects || entity.statusEffects.length === 0) return;
+
+    entity.statusEffects = entity.statusEffects.filter(effect => {
+        if (effect.currentDuration <= 0) {
+            logCombatMessage(`${entity.name || "Player"}'s ${effect.type} effect wears off.`);
+            return false;
+        }
+
+        let effectDamage = 0;
+        if (effect.type === 'bleed') {
+            effectDamage = Math.floor(effect.magnitude * (entity.maxHp * 0.01));
+            logCombatMessage(`<span style="color: red;">${entity.name || "Player"} bleeds for ${effectDamage} damage!</span>`);
+        } else if (effect.type === 'poison') {
+            effectDamage = Math.floor(effect.magnitude * (entity.maxHp * 0.005));
+            logCombatMessage(`<span style="color: green;">${entity.name || "Player"} is poisoned for ${effectDamage} damage!</span>`);
+        }
+        
+        if (effectDamage > 0) {
+            entity.hp = Math.max(0, entity.hp - effectDamage);
+            if (entity.id === 'player') {
+                updateStatusDisplay();
+                updatePokemonBattlePlayerUI();
+            } else {
+                updatePokemonBattleMonsterUI();
+            }
+            
+            if (entity.hp <= 0) {
+                logCombatMessage(`${entity.name || "Player"} was defeated by ${effect.type}!`);
+                if (entity.id === 'player') gameOver();
+                else endCombat(true);
+                return false;
+            }
+        }
+
+        effect.currentDuration--;
+        return true;
+    });
+}
+
+export function generateRandomItem(playerLevel, magicFind = 0, desiredRarity = null) {
+    // 1. Determine Item Level
+    const levelVariance = 5;
+    const itemLevel = Math.max(1, playerLevel + Math.floor(Math.random() * (levelVariance * 2 + 1)) - levelVariance);
+
+    // 2. Determine Rarity
+    let rarityKey = 'common';
+    if (desiredRarity && RARITY_CONFIG[desiredRarity]) {
+        rarityKey = desiredRarity;
+    } else {
+        const totalMagicFind = magicFind + (gameState.playerStats.derived.magicFind || 0);
+        const exponent = 1 / (1 + totalMagicFind / 100);
+        const roll = Math.random(); // Use a roll between 0-1 for probability
+
+        let cumulativeProb = 0;
+        // Sort rarities by their probability to ensure correct cumulative probability calculation
+        // The instruction says "rarity_bonus: 45" for legacy, but probability for common is 0.1, so
+        // let's assume the probability here means a weight, and I need to normalize it.
+        // Or assume the probabilities are already normalized to sum up to 100.
+        // Given the numbers (0.1, 30, 15, 5, 3, 1.5, 0.4, 45), they sum up to ~100.
+        // Let's adjust the `roll` to be between 0 and `sum of probabilities`.
+
+        const rarityProbabilities = Object.values(RARITY_CONFIG).map(r => r.probability);
+        const sumOfProbabilities = rarityProbabilities.reduce((sum, prob) => sum + prob, 0);
+        const scaledRoll = roll * sumOfProbabilities;
+        
+        for (const rKey in RARITY_CONFIG) { // Iterate using for...in for original order
+            cumulativeProb += RARITY_CONFIG[rKey].probability;
+            if (scaledRoll < cumulativeProb) {
+                rarityKey = rKey;
+                break;
+            }
+        }
+    }
+    const rarity = RARITY_CONFIG[rarityKey];
+
+    // 3. Create Base Item and determine if it's Unique or Set
+    const slots = Object.keys(BASE_ITEMS);
+    const randomSlotKey = slots[Math.floor(Math.random() * slots.length)];
+    const baseItemCandidates = BASE_ITEMS[randomSlotKey];
+    const baseItem = baseItemCandidates[Math.floor(Math.random() * baseItemCandidates.length)];
+
+    let generatedItem = {
+        id: `${baseItem.name.toLowerCase()}_${Date.now()}`,
+        name: baseItem.name, // Will be overridden by unique/set name or combined with prefix
+        level: itemLevel,
+        type: 'equipment',
+        slot: randomSlotKey,
+        weaponType: baseItem.weaponType,
+        rarity: rarityKey,
+        stats: {},
+        affixes: []
+    };
+
+    let isUniqueGenerated = false;
+    let isSetGenerated = false;
+
+    // Item generation probabilities
+    const UNIQUE_ITEM_BASE_CHANCE = 0.75; // 75% chance for a unique if rarity is Mystic or Legacy
+    const SET_ITEM_BASE_CHANCE = 0.7;    // 70% chance for a set item if rarity is Epic, Mystic, or Legacy and not unique
+
+    // Determine if we should attempt to generate a Unique item
+    if ((rarityKey === 'mystic' || rarityKey === 'legacy') && Math.random() < UNIQUE_ITEM_BASE_CHANCE) {
+        const possibleUniqueItems = UNIQUE_ITEM_NAMES_BY_RARITY_AND_SLOT[rarityKey]?.[randomSlotKey];
+        if (possibleUniqueItems) {
+            const uniqueItemNames = Object.keys(possibleUniqueItems);
+            if (uniqueItemNames.length > 0) {
+                const randomUniqueName = uniqueItemNames[Math.floor(Math.random() * uniqueItemNames.length)];
+                const uniqueItemData = possibleUniqueItems[randomUniqueName];
+                
+                generatedItem = {
+                    ...generatedItem,
+                    ...uniqueItemData,
+                    name: randomUniqueName,
+                    rarity: rarityKey, // Ensure rarity is correct for unique item
+                    isUnique: true,
+                    // description will be uniqueItemData.description if it exists, otherwise generatedItem.description (from baseItem)
+                    description: uniqueItemData.description || generatedItem.description,
+                    color: uniqueItemData.color || rarity.color,
+                    prefix: '' // Unique items have no prefixes
+                };
+                isUniqueGenerated = true;
+
+                // Add random affixes for unique items (1-2 additional affixes)
+                let numAdditionalAffixes;
+                if (rarityKey === 'epic' || rarityKey === 'mystic' || rarityKey === 'legacy') {
+                    numAdditionalAffixes = Math.floor(Math.random() * 2) + 5; // 2 or 3 additional affixes for Epic+
+                } else {
+                    numAdditionalAffixes = Math.floor(Math.random() * 2) + 4; // 1 or 2 additional affixes for others
+                }
+                const uniqueAffixPool = [...rarity.possibleAffixes]; // Copy to modify
+
+                for (let i = 0; i < numAdditionalAffixes && uniqueAffixPool.length > 0; i++) {
+                    const affixTypeKey = uniqueAffixPool.splice(Math.floor(Math.random() * uniqueAffixPool.length), 1)[0];
+                    const affixDefinition = AFFIX_TYPES[affixTypeKey];
+                    const affixValues = rarity.affixValues[affixTypeKey];
+
+                    if (affixDefinition && affixValues) {
+                        const affix = { type: affixTypeKey };
+                        if (affixDefinition.minMax) {
+                            affix.min = Math.floor(Math.random() * (affixValues.max - affixValues.min + 1)) + affixValues.min;
+                            affix.max = Math.floor(Math.random() * (affixValues.max - affixValues.min + 1)) + affixValues.min;
+                            if (affix.min > affix.max) [affix.min, affix.max] = [affix.max, affix.min];
+                        } else if (affixDefinition.chanceVal) {
+                            affix.chance = affixValues.chance;
+                            if (affixDefinition.type === 'statusEffect') {
+                                affix.magnitude = affixValues.magnitude;
+                                affix.duration = affixValues.duration;
+                                affix.effectType = affixDefinition.effectType;
+                            }
+                        } else {
+                            affix.value = Math.random() * (affixValues.max - affixValues.min) + affixValues.min;
+                            if (affixDefinition.type === 'stat') affix.value = Math.floor(affix.value);
+                            else affix.value = parseFloat(affix.value.toFixed(2));
+                        }
+
+                        if (affixTypeKey === 'elementalDamage') {
+                            const elementKeys = Object.keys(ELEMENTAL_TYPES);
+                            const randomElementKey = elementKeys[Math.floor(Math.random() * elementKeys.length)];
+                            affix.elementType = randomElementKey;
+                        }
+                        generatedItem.affixes.push(affix);
+                    }
+                }
+            }
+        }
+    }
+
+    // Determine if we should attempt to generate a Set item, only if not already a Unique
+    if (!isUniqueGenerated && (rarityKey === 'epic' || rarityKey === 'mystic' || rarityKey === 'legacy') && Math.random() < SET_ITEM_BASE_CHANCE) {
+        // Find set pieces that match the current slot and base item name
+        const possibleSetPieces = EQUIPMENT_SETS.flatMap(set => 
+            set.pieces.filter(piece => 
+                piece.slot === randomSlotKey && piece.baseName === baseItem.name
+            ).map(piece => ({ ...piece, setId: set.id, setName: set.name, setColor: set.color })) // Add set info
+        );
+
+        if (possibleSetPieces.length > 0) {
+            const randomSetPiece = possibleSetPieces[Math.floor(Math.random() * possibleSetPieces.length)];
+            
+            generatedItem = {
+                ...generatedItem,
+                ...randomSetPiece,
+                name: randomSetPiece.name,
+                rarity: rarityKey, // Set item rarity is determined by the generation process
+                isSetItem: true,
+                setId: randomSetPiece.setId,
+                setName: randomSetPiece.setName,
+                // description will be randomSetPiece.description if it exists, otherwise generatedItem.description
+                description: randomSetPiece.description || generatedItem.description,
+                color: randomSetPiece.color || rarity.color, // Use set piece color or rarity color
+                prefix: '' // Set items have no prefixes
+            };
+            isSetGenerated = true;
+        }
+    }
+
+    // If not unique or set, proceed with normal item generation (dynamic stats and affixes)
+    if (!isUniqueGenerated && !isSetGenerated) {
+        // 4. Calculate Dynamic Budget and Allocate Stats
+        let budget = (rarity.budget * 0.5) + (itemLevel * rarity.level_multiplier);
+        const possibleStats = ['strength', 'intelligence', 'agility', 'vitality', 'mentality', 'luck'];
+        while (budget > 0) {
+            const statToBuff = possibleStats[Math.floor(Math.random() * possibleStats.length)];
+            const amount = 1 + Math.floor(Math.random() * (budget / 4));
+            generatedItem.stats[statToBuff] = (generatedItem.stats[statToBuff] || 0) + amount;
+            budget -= (amount * 2); // Primary stats are valuable
+            if (budget < 1) break;
+        }
+
+        // 5. Generate Affixes
+        if (rarity.affixSlots && rarity.affixSlots.max > 0) {
+            const numAffixes = Math.floor(Math.random() * (rarity.affixSlots.max - rarity.affixSlots.min + 1)) + rarity.affixSlots.min;
+            const potentialAffixes = [...rarity.possibleAffixes];
+
+            for (let i = 0; i < numAffixes && potentialAffixes.length > 0; i++) {
+                const affixTypeKey = potentialAffixes.splice(Math.floor(Math.random() * potentialAffixes.length), 1)[0];
+                const affixDefinition = AFFIX_TYPES[affixTypeKey];
+                const affixValues = rarity.affixValues[affixTypeKey];
+
+                if (affixDefinition && affixValues) {
+                    const affix = { type: affixTypeKey };
+                    if (affixDefinition.minMax) {
+                        affix.min = Math.floor(Math.random() * (affixValues.max - affixValues.min + 1)) + affixValues.min;
+                        affix.max = Math.floor(Math.random() * (affixValues.max - affixValues.min + 1)) + affixValues.min;
+                        if (affix.min > affix.max) [affix.min, affix.max] = [affix.max, affix.min];
+                    } else if (affixDefinition.chanceVal) {
+                        affix.chance = affixValues.chance;
+                        if (affixDefinition.type === 'statusEffect') {
+                            affix.magnitude = affixValues.magnitude;
+                            affix.duration = affixValues.duration;
+                            affix.effectType = affixDefinition.effectType;
+                        }
+                    } else {
+                        affix.value = Math.random() * (affixValues.max - affixValues.min) + affixValues.min;
+                        if (affixDefinition.type === 'stat') affix.value = Math.floor(affix.value);
+                        else affix.value = parseFloat(affix.value.toFixed(2));
+                    }
+
+                    if (affixTypeKey === 'elementalDamage') {
+                        const elementKeys = Object.keys(ELEMENTAL_TYPES);
+                        const randomElementKey = elementKeys[Math.floor(Math.random() * elementKeys.length)];
+                        affix.elementType = randomElementKey;
+                    }
+                    generatedItem.affixes.push(affix);
+                }
+            }
+        }
+        
+        let prefix = '';
+        if (generatedItem.affixes.length > 0) {
+            const firstAffix = generatedItem.affixes[0];
+            let prefixKey = firstAffix.type;
+            if (prefixKey === 'elementalDamage' && firstAffix.elementType) {
+                prefixKey = `elementalDamage_${firstAffix.elementType}`;
+            }
+            prefix = AFFIX_PREFIXES[prefixKey] || '';
+        }
+        generatedItem.prefix = prefix;
+    }
+
+    generatedItem.rarityName = rarity.name; // Store rarity name for tooltip
+
+    // Ensure the item's name is set correctly based on its type
+    if (generatedItem.isUnique || generatedItem.isSetItem) {
+        // Name already set by unique/set logic
+        // Also ensure the color is set to the item's specific color if defined, otherwise fall back to rarity color
+        generatedItem.color = generatedItem.color || rarity.color;
+    } else {
+        // For normal items, combine prefix and base name
+        generatedItem.name = `${generatedItem.prefix} ${generatedItem.name}`.trim();
+        // For normal items, color is based on rarity
+        generatedItem.color = rarity.color;
+    }
+    
+    return generatedItem;
+}
+
+export function generateMonster(mapGrid) {
+    const MONSTER_NAME_MAP = {
+        "BLUE_SLIME": "블루 슬라임",
+        "BONE_SLIME": "본 슬라임",
+        "CRYSTAL_GOLEM": "크리스탈 골렘",
+        "DARK_KHIGHT": "다크 나이트",
+        "EARTH_TURTLE": "땅 거북",
+        "EARTH_WORM": "땅 지렁이",
+        "ENT_WOOD": "엔트 우드",
+        "FIRE_WORM": "불 지렁이",
+        "FROG_SHAMAN": "개구리 주술사",
+        "GARGOYLE": "가고일",
+        "GHOST": "고스트",
+        "GOBLIN": "고블린",
+        "GREEN_SLIME": "그린 슬라임",
+        "GREY_WOLF": "회색 늑대",
+        "GROUND_DRAGON": "지룡",
+        "ICE_DRAGON": "빙룡",
+        "ICE_LICH": "아이스 리치",
+        "ICE_SKULKING": "아이스 스컬킹",
+        "KOBOLT": "코볼트",
+        "LAVA_GOLEM": "라바 골렘",
+        "LIZARD_MAN": "리자드맨",
+        "MIMIC": "미믹",
+        "ORC_SHAMAN": "오크 주술사",
+        "ORC_WARRIOR": "오크 전사",
+        "POISON_DRAGON": "독룡",
+        "POISON_LICH": "포이즌 리치",
+        "POISON_MUSHMAN": "독버섯",
+        "POISON_SIDE": "포이즌 사이드",
+        "RAPTOR_ARCHER": "랩터 궁수",
+        "RAPTOR_WARRIOR": "랩터 전사",
+        "RED_DRAGON": "레드 드래곤",
+        "RED_OGRE": "레드 오우거",
+        "RED_RIZARDMAN": "레드 리자드맨",
+        "ROCK_GOLEM": "바위 골렘",
+        "SATANIC_GARGOYLE": "사타닉 가고일",
+        "SKEL_WARRIOR": "해골 전사",
+        "SKUL_LICH": "스컬 리치",
+        "WEREWOLF": "웨어울프",
+        "WOOD_WARM": "나무 지렁이",
+        "ZOMBIE": "좀비"
+    };
+
+    const playerLevel = gameState.playerStats.base.level;
+    const isBoss = Math.random() * 100 < BOSS_CHANCE_PERCENT;
+
+    let tierKey = 'normal';
+    if (playerLevel < 5) {
+        tierKey = 'normal';
+    } else if (playerLevel < 10) {
+        tierKey = (Math.random() < 0.7) ? 'normal' : 'elite';
+    } else {
+        tierKey = (Math.random() < 0.5) ? 'normal' : (Math.random() < 0.7) ? 'elite' : 'champion';
+    }
+
+    const tier = MONSTER_TIERS[tierKey];
+
+    const monsterInfo = MONSTER_TYPES[Math.floor(Math.random() * MONSTER_TYPES.length)];
+    const monsterType = monsterInfo.name;
+    const monsterArchetype = monsterInfo.archetype;
+    
+    const translatedName = MONSTER_NAME_MAP[monsterType] || monsterType.replace(/_/g, ' ');
+    const name = tier.name ? `${tier.name} ${translatedName}` : translatedName;
+
+    const monsterLevel = isBoss ? Math.max(1, playerLevel + Math.floor(Math.random() * 8)) : Math.max(1, playerLevel + Math.floor(Math.random() * 7) - 3);
+    const stats = generateMonsterStats(monsterLevel, isBoss, tier.stat_multiplier, monsterArchetype);
+    
+    const levelDiff = monsterLevel - playerLevel;
+    let threatScore = levelDiff + (tier.threat_bonus || 0);
+    if (isBoss) threatScore += 15;
+
+    let threatColor = '#aaaaaa';
+    if (threatScore > 15) threatColor = '#a335ee';
+    else if (threatScore > 10) threatColor = '#c62828';
+    else if (threatScore > 5) threatColor = '#ff4040';
+    else if (threatScore > 2) threatColor = '#ff8000';
+    else if (threatScore > -2) threatColor = '#FFFF00';
+    else threatColor = '#FFFFFF';
+
+    if (isBoss) threatColor = '#ff00ff';
+
+    const { x, y } = getRandomEmptyTile(mapGrid);
+    gameState.activeMonsters.push({ 
+        id: Date.now() + Math.random(), x, y, ...stats, 
+        name: name,
+        monsterType: monsterType,
+        tier: tierKey,
+        threatColor: threatColor,
+        statusEffects: []
+    });
+}
+
+export function generateMonsterStats(level, isBoss, multiplier, archetype) {
+    // Increased per-level scaling to make monsters tougher
+    let baseHp = 50 + (level * 18);
+    let baseAttack = 5 + (level * 3);
+    let baseDefense = 2 + (level * 1.5);
+    let baseSpeed = 5 + level * 0.5;
+    let baseEvasion = 0;
+
+    // Apply archetype modifications
+    switch (archetype) {
+        case 'tank':
+            baseHp *= 1.6;
+            baseDefense *= 1.5;
+            baseAttack *= 0.7;
+            baseSpeed *= 0.8;
+            break;
+        case 'tanky_slow':
+            baseHp *= 1.4;
+            baseDefense *= 1.2;
+            baseAttack *= 0.9;
+            baseSpeed *= 0.6;
+            break;
+        case 'bruiser':
+            baseHp *= 1.2;
+            baseAttack *= 1.2;
+            baseDefense *= 1.1;
+            break;
+        case 'rusher':
+            baseSpeed *= 1.4;
+            baseAttack *= 1.1;
+            baseHp *= 0.8;
+            baseDefense *= 0.8;
+            break;
+        case 'caster':
+            // Will be used to give monsters magical attacks later
+            baseAttack *= 1.4; // For now, boost their main attack
+            baseHp *= 0.85;
+            baseDefense *= 0.85;
+            break;
+        case 'evasive':
+            baseEvasion = 0.15; // 15% base evasion
+            baseSpeed *= 1.2;
+            baseHp *= 0.8;
+            break;
+        case 'glass_cannon':
+            baseAttack *= 1.6;
+            baseHp *= 0.7;
+            baseDefense *= 0.7;
+            baseSpeed *= 1.1;
+            break;
+        case 'elite':
+            baseHp *= 1.3;
+            baseAttack *= 1.3;
+            baseDefense *= 1.2;
+            baseSpeed *= 1.1;
+            break;
+        case 'standard':
+        default:
+            // No changes for standard archetype
+            break;
+    }
+
+    if (isBoss) { baseHp *= 2.5; baseAttack *= 1.8; baseDefense *= 1.8; }
+    
+    const variance = (val) => val * (0.8 + Math.random() * 0.4);
+    const maxHp = Math.floor(variance(baseHp) * multiplier);
+
+    return {
+        level, maxHp, hp: maxHp, isBoss,
+        physicalAttack: Math.floor(variance(baseAttack) * multiplier),
+        magicalAttack: Math.floor(variance(baseAttack * 0.8) * multiplier), // Give some MA by default
+        physicalDefense: Math.floor(variance(baseDefense) * multiplier),
+        magicalDefense: Math.floor(variance(baseDefense * 0.8) * multiplier),
+        speed: Math.floor(variance(baseSpeed)),
+        luck: Math.floor(variance(1 + level * 0.2)),
+        evasion: baseEvasion, // Evasion is not randomized by variance
+    };
+}
+
+export function gameOver() {
+    alert("You have been defeated!");
+    location.reload();
+}
+
+export function startCombat(monster) {
+    gameState.isInCombat = true;
+    gameState.currentCombatMonster = { ...monster, statusEffects: [] }; 
+
+    // Hide game container, show new Pokémon battle overlay
+    gameContainer.classList.add('hidden');
+    pokemonBattleOverlay.classList.remove('hidden');
+
+    // Initialize the new battle UI
+    initPokemonBattleUI(monster);
+    
+    // Clear log and add initial message
+    battleLog.innerHTML = '';
+    logCombatMessage(`You encountered a ${monster.name}!`);
+
+    // Determine who goes first
+    if (gameState.playerStats.derived.speed >= gameState.currentCombatMonster.speed) {
+        logCombatMessage("You are faster and get the first turn!"); setCombatButtonsEnabled(true);
+    } else {
+        logCombatMessage("The monster is faster and attacks first!"); setCombatButtonsEnabled(false);
+        setTimeout(monsterTurn, 1000);
+    }
+}
+
+export function endCombat(wasVictory) {
+    gameState.isInCombat = false;
+    try {
+        if (wasVictory && gameState.currentCombatMonster) {
+            const goldAmount = calculateGoldDrop(gameState.currentCombatMonster);
+            gameState.playerStats.base.gold += goldAmount;
+            logCombatMessage(`<span style="color: gold;">You gained ${goldAmount} gold!</span>`);
+            updateStatusDisplay(); 
+
+            const monsterTierInfo = MONSTER_TIERS[gameState.currentCombatMonster.tier];
+            const dropChance = ITEM_DROP_CHANCE + (monsterTierInfo.drop_rate_bonus || 0);
+
+            if (Math.random() < dropChance) {
+                if (gameState.playerStats.inventory.length < INVENTORY_SIZE) {
+                    let rarityBonus = monsterTierInfo.rarity_bonus || 0;
+                    if (gameState.currentCombatMonster.isBoss) {
+                        rarityBonus += 25;
+                    }
+                    const newItem = generateRandomItem(gameState.playerStats.base.level, rarityBonus);
+                    gameState.playerStats.inventory.push(newItem);
+                    logCombatMessage(`<span style="color: yellow;">The monster dropped: </span><span style="color:${RARITY_CONFIG[newItem.rarity].color};">${newItem.name}</span>!`);
+                } else {
+                    logCombatMessage("Your inventory is full! The monster's drop was lost.");
+                }
+            }
+
+            if (Math.random() < TREASURE_CHEST_CHANCE) {
+                logCombatMessage("<span style='color: gold;'>A treasure chest appears!</span>");
+                const numberOfItems = 2 + Math.floor(Math.random() * 3);
+
+                for (let i = 0; i < numberOfItems; i++) {
+                    if (gameState.playerStats.inventory.length < INVENTORY_SIZE) {
+                        const rarityBonus = 50 + Math.random() * 50;
+                        const newItem = generateRandomItem(gameState.playerStats.base.level, rarityBonus);
+                        gameState.playerStats.inventory.push(newItem);
+                        logCombatMessage(`<span style="color: gold;">You found: </span><span style="color:${RARITY_CONFIG[newItem.rarity].color};">${newItem.name}</span>!`);
+                    } else {
+                        logCombatMessage("Your inventory is full! An item from the chest was lost.");
+                        break; 
+                    }
+                }
+            }
+
+            gameState.player.x = gameState.currentCombatMonster.x;
+            gameState.player.y = gameState.currentCombatMonster.y;
+            gameState.activeMonsters = gameState.activeMonsters.filter(m => m.id !== gameState.currentCombatMonster.id);
+        } else if (!wasVictory && gameState.currentCombatMonster) { // Successful escape
+            gameState.activeMonsters = gameState.activeMonsters.filter(m => m.id !== gameState.currentCombatMonster.id);
+            // Optionally, log a message here if not already done in handleKeyDown
+        }
+    } catch (e) {
+        console.error("Error during victory processing in endCombat:", e);
+        logCombatMessage(`<span style="color: red;">An error occurred processing victory rewards.</span>`);
+    } finally {
+        gameState.isAutoAttacking = false;
+        battleAutoAttackBtn.textContent = '자동 공격';
+        gameState.currentCombatMonster = null;
+        pokemonBattleOverlay.classList.add('hidden'); // Hide the new battle overlay
+        gameContainer.classList.remove('hidden'); // Show game container
+        drawGame();
+    }
+}
+
+export function playerTurn() {
+    setCombatButtonsEnabled(false);
+    
+    // 방어 로직: currentCombatMonster가 null인 경우 턴 중단
+    if (!gameState.currentCombatMonster) {
+        // console.warn("playerTurn: currentCombatMonster is null. Aborting turn."); // 디버그 로그 제거
+        return;
+    }
+
+    processStatusEffects(gameState.currentCombatMonster);
+    if (gameState.currentCombatMonster.hp <= 0) {
+        logCombatMessage("<span style='color: yellow;'>The monster was defeated by a status effect!</span>");
+        gainExperience(gameState.currentCombatMonster.level * XP_GAIN_MULTIPLIER);
+        setTimeout(() => endCombat(true), 1000);
+        return;
+    }
+
+    const weapon = gameState.playerStats.equipment.mainWeapon;
+    const attackType = weapon ? weapon.weaponType : 'physical'; // Default to physical if unarmed
+
+    const { damage, isCritical } = calculateDamage(gameState.playerStats.derived, gameState.currentCombatMonster, attackType, gameState.playerStats.equipment);
+
+    gameState.currentCombatMonster.hp -= damage;
+    gameState.currentCombatMonster.hp = Math.max(0, gameState.currentCombatMonster.hp);
+    
+    let critString = isCritical ? ` <span style="color: red;">(CRIT!)</span>` : '';
+    logCombatMessage(`You dealt ${damage} ${attackType} damage${critString}.`);
+
+    updatePokemonBattleMonsterUI(); // Update new UI monster HP
+    if (gameState.currentCombatMonster.hp <= 0) {
+        logCombatMessage("<span style='color: yellow;'>The monster has been defeated!</span>");
+        gainExperience(gameState.currentCombatMonster.level * XP_GAIN_MULTIPLIER);
+        setTimeout(() => endCombat(true), 1000);
+    } else {
+        setTimeout(monsterTurn, 1000);
+    }
+}
+
+export function monsterTurn() {
+    processStatusEffects(gameState.playerStats);
+    if (gameState.playerStats.base.hp <= 0) {
+        logCombatMessage("You were defeated by a status effect!"); 
+        setTimeout(gameOver, 1000);
+        return;
+    }
+
+    const { damage, isCritical } = calculateDamage(gameState.currentCombatMonster, gameState.playerStats.derived, 'physical', gameState.playerStats.equipment);
+
+    gameState.playerStats.base.hp -= damage;
+    gameState.playerStats.base.hp = Math.max(0, gameState.playerStats.base.hp);
+
+    let critString = isCritical ? ` <span style="color: red;">(CRIT!)</span>` : '';
+    logCombatMessage(`The monster dealt ${damage} damage${critString}.`);
+
+    updatePokemonBattlePlayerUI(); // Update new UI player HP
+    updateStatusDisplay();
+    if (gameState.playerStats.base.hp <= 0) {
+        logCombatMessage("You have been defeated!"); setTimeout(gameOver, 1000);
+    } else {
+        if (gameState.isAutoAttacking) {
+            setTimeout(playerTurn, 500); // Continue auto-attack loop
+        } else {
+            setCombatButtonsEnabled(true);
+        }
+    }
+}
+
+export function toggleAutoAttack() {
+    gameState.isAutoAttacking = !gameState.isAutoAttacking;
+    // setCombatButtonsEnabled(false); // Removed: playerTurn will disable attack/run buttons
+
+    if (gameState.isAutoAttacking) {
+        battleAutoAttackBtn.textContent = '자동 공격 중...';
+        playerTurn(); // Start the auto-attack loop
+    } else {
+        battleAutoAttackBtn.textContent = '자동 공격';
+        setCombatButtonsEnabled(true); // Re-enable buttons if auto-attack is stopped manually
+    }
+}
+
+export function showLevelUpModal() {
+    levelUpModal.classList.remove('hidden');
+    gameState.isUiVisible = true;
+}
+
+export function hideLevelUpModal() {
+    levelUpModal.classList.add('hidden');
+    gameState.isUiVisible = false;
+}
+
+// Merchant logic
+
+
+export function openMerchantUI() {
+    gameState.isUiVisible = true;
+    merchantOverlayElement.classList.remove('hidden');
+    renderMerchantStock(gameState.wanderingMerchant.stock, buyItem, showMerchantItemTooltip);
+    renderPlayerSellInventory(gameState.playerStats.inventory, sellItem, showPlayerSellTooltip);
+    updateMerchantPlayerGoldDisplay();
+}
+
+export function closeMerchantUI() {
+    gameState.isUiVisible = false;
+    merchantOverlayElement.classList.add('hidden');
+    gameState.wanderingMerchant = null;
+    hideItemTooltip(); // Ensure tooltip is hidden when merchant window closes
+    drawGame(); // Call drawGame from map.js or main.js
+}
+
+export function buyItem(item, merchantItemIndex) {
+    if (gameState.playerStats.base.gold >= item.price) {
+        if (gameState.playerStats.inventory.length < INVENTORY_SIZE) {
+            gameState.playerStats.base.gold -= item.price;
+            const newItem = { ...item };
+            delete newItem.price; // The price is a merchant-specific thing
+
+            gameState.playerStats.inventory.push(newItem);
+            gameState.wanderingMerchant.stock.splice(merchantItemIndex, 1);
+
+            logCombatMessage(`<span style="color: green;">Bought ${item.name} for ${item.price} gold.</span>`);
+            
+            // Re-render the merchant's stock to show the item has been removed
+            renderMerchantStock(gameState.wanderingMerchant.stock, buyItem, showMerchantItemTooltip);
+        } else {
+            logCombatMessage("<span style='color: red;'>Your inventory is full! Cannot buy item.</span>");
+        }
+    } else {
+        logCombatMessage("<span style='color: red;'>Not enough gold to buy that item!</span>");
+    }
+    updateStatusDisplay();
+    renderPlayerSellInventory(gameState.playerStats.inventory, sellItem, showPlayerSellTooltip);
+    updateMerchantPlayerGoldDisplay();
+}
+
+export function sellItem(itemIndex) {
+    const item = gameState.playerStats.inventory[itemIndex];
+    if (!item) return;
+
+    const sellPrice = calculateSellPrice(item);
+    gameState.playerStats.base.gold += sellPrice;
+    gameState.playerStats.inventory.splice(itemIndex, 1);
+    logCombatMessage(`<span style="color: green;">Sold ${item.name} for ${sellPrice} gold.</span>`);
+
+    updateStatusDisplay();
+    renderPlayerSellInventory(gameState.playerStats.inventory, sellItem, showPlayerSellTooltip);
+    updateMerchantPlayerGoldDisplay();
+}
+
+export function calculateSellPrice(item) {
+    let price = 0;
+    if (item.rarity && RARITY_CONFIG[item.rarity]) {
+        price = RARITY_CONFIG[item.rarity].budget * 2; 
+    } 
+    else if (item.price) {
+        price = item.price;
+    }
+    else {
+        price = 10; 
+    }
+    return Math.floor(price / 2);
+}
+
+export function showMerchantItemTooltip(event, item) {
+    let tooltipContent = createTooltipContent(item, 'Item');
+    tooltipContent = tooltipContent.replace('</div>', `<div>Price: ${item.price} Gold</div><div>${item.description || ''}</div></div>`);
+
+    itemTooltipElement.innerHTML = tooltipContent;
+    itemTooltipElement.classList.remove('hidden'); itemTooltipElement.style.opacity = 1;
+    itemTooltipElement.style.left = event.pageX + 15 + 'px';
+    itemTooltipElement.style.top = event.pageY + 15 + 'px';
+}
+
+export function showPlayerSellTooltip(event, item) {
+    const sellPrice = calculateSellPrice(item);
+    let tooltipContent = createTooltipContent(item, 'Item');
+    tooltipContent = tooltipContent.replace('</div>', `<div>Sell Price: ${sellPrice} Gold</div></div>`);
+
+    itemTooltipElement.innerHTML = tooltipContent;
+    itemTooltipElement.classList.remove('hidden'); itemTooltipElement.style.opacity = 1;
+    itemTooltipElement.style.left = event.pageX + 15 + 'px';
+    itemTooltipElement.style.top = event.pageY + 15 + 'px';
+}
+
+export function setCombatButtonsEnabled(enabled) {
+    battleAttackBtn.disabled = !enabled;
+    // battleAutoAttackBtn.disabled = !enabled; // Auto-attack button should always be enabled to toggle
+    battleRunAwayBtn.disabled = !enabled;
+}

@@ -1,0 +1,486 @@
+# 고유 아이템 특수 효과 추가 및 개선 계획
+
+## 목표:
+- 모든 고유 아이템에 적절한 'specialEffects'를 추가하여 아이템의 개성을 강화하고 툴팁에 효과를 명확히 표시.
+- 기존 'SPECIAL_AFFIX_TYPES'를 최대한 활용하고, 필요한 경우 새로운 특수 효과 정의 제안.
+
+## 구현 방안:
+- 'constants.js'의 UNIQUE_ITEM_NAMES_BY_RARITY_AND_SLOT 객체 내 각 고유 아이템 정의에 'specialEffects' 배열을 추가/수정.
+- 각 'specialEffects' 객체는 SPECIAL_AFFIX_TYPES에 정의된 'type'을 참조하고, 해당 효과에 필요한 'value', 'chance', 'magnitude', 'duration' 등의 파라미터를 포함.
+
+---
+
+## 1. Legendary (전설) 등급 고유 아이템 SPECIAL_AFFIXES -> SPECIAL_EFFECTS 전환 및 추가 제안
+
+specialEffects: [],
+
+### mainWeapon (주무기)
+
+-   **'엑스칼리버'**: (현재 specialEffects 있음)
+    -   **설명**: '전설적인 영웅만이 휘두를 수 있는 신성한 검.'
+    -   **현재 specialEffects**: `[{ type: 'auraDefense', value: 6 }, { type: 'physicalBlockChance', value: 0.1 }]`
+    -   **추가 제안**: '신성한' 컨셉 강화를 위해 피격 시 짧은 시간 상태 이상 면역
+        -   `{ type: 'statusEffectImmunityOnHit', chance: 0.05, duration: 2 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'아론다이트'**: (현재 specialEffects 없음)
+    -   **설명**: '호수의 기사가 사용했던 피에 굶주린 검.'
+    -   **추가 제안**: '피에 굶주린' 컨셉 강화를 위해 몬스터 처치 시 추가 생명력 흡수
+        -   `{ type: 'lifestealOnKill', value: 0.05, duration: 5 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'궁니르'**: (현재 specialEffects 없음)
+    -   **설명**: '결코 빗나가지 않는다는 신의 창.'
+    -   **추가 제안**: '빗나가지 않는' 컨셉 강화를 위해 일정 확률로 적 방어 무시 (기존 piercingShot 활용)
+        -   `{ type: 'piercingShot', value: 0.2 }`
+
+-   **'티르빙'**: (현재 specialEffects 없음)
+    -   **설명**: '들기만 해도 주인을 파멸로 이끄는 저주받은 검.'
+    -   **추가 제안**: '저주' 컨셉 강화를 위해 공격 시 일정 확률로 적에게 공격력 감소 디버프
+        -   `{ type: 'onHitAttackDebuff', chance: 0.1, magnitude: 0.15, duration: 3 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'프라가라흐'**: (현재 specialEffects 있음)
+    -   **설명**: '대답하는 검이라 불리는 요정의 마검.'
+    -   **현재 specialEffects**: `[{ type: 'onHitFireball', chance: 0.15, magnitude: 30 }]`
+    -   **추가 제안**: '대답하는' 컨셉 강화를 위해 마법 공격 시 추가 MP 회복
+        -   `{ type: 'manaRegenOnSpell', value: 10 }` (기존 SPECIAL_AFFIX_TYPES 활용)
+
+-   **'묠니르'**: (현재 specialEffects 있음)
+    -   **설명**: '천둥의 신이 사용하는 강력한 망치.'
+    -   **현재 specialEffects**: `[{ type: 'chainLightningProc', chance: 0.1 }]`
+    -   **추가 제안**: '천둥의 힘' 컨셉 강화를 위해 공격 시 일정 확률로 짧은 시간 동안 스턴
+        -   `{ type: 'onAttackStun', chance: 0.05, duration: 1 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'스톰브레이커'**: (현재 specialEffects 없음)
+    -   **설명**: '신들의 무기를 부수는 거대한 도끼.'
+    -   **추가 제안**: '무기 파괴' 컨셉 강화를 위해 일정 확률로 적의 방어력 일시 감소
+        -   `{ type: 'onHitDefenseBreak', chance: 0.1, magnitude: 0.1, duration: 3 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'흐룬팅'**: (현재 specialEffects 없음)
+    -   **설명**: '적의 피를 마시면 강해지는 도끼.'
+    -   **추가 제안**: '피를 마시는' 컨셉 강화를 위해 몬스터 처치 시 일시적 공격 속도 증가
+        -   `{ type: 'speedBoostOnKill', value: 0.1, duration: 5 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'헤르메스의 케뤼케이온'**: (현재 specialEffects 없음)
+    -   **설명**: '신들의 전령이 사용하던 마법 지팡이.'
+    -   **추가 제안**: '전령' 컨셉 강화를 위해 이동 속도 증가 및 매직 파인드 추가
+        -   `{ type: 'movementSpeedBonus', value: 0.1 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+        -   `{ type: 'magicFindBonus', value: 0.05 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'이둔의 지팡이'**: (현재 specialEffects 없음)
+    -   **설명**: '영원한 젊음을 가져다주는 황금 사과의 지팡이.'
+    -   **추가 제안**: '젊음' 컨셉 강화를 위해 초당 HP/MP 회복 증가
+        -   `{ type: 'hpRegen', value: 5 }` (기존 AFFIX_TYPES의 format 활용 가능하지만, specialEffects로 통합 제안)
+        -   `{ type: 'manaRegen', value: 5 }` (기존 AFFIX_TYPES의 format 활용 가능하지만, specialEffects로 통합 제안)
+
+-   **'게피온의 지팡이'**: (현재 specialEffects 없음)
+    -   **설명**: '모든 원소를 다루는 대현자의 지팡이.'
+    -   **추가 제안**: '모든 원소' 컨셉 강화를 위해 모든 원소 피해 저항 증가
+        -   `{ type: 'allElementalResistance', value: 0.1 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'아르테미스의 활'**: (현재 specialEffects 없음)
+    -   **설명**: '사냥의 여신이 사용했던 신비로운 활.'
+    -   **추가 제안**: '사냥의 여신' 컨셉 강화를 위해 원거리 공격 시 일정 확률로 추가 화살 발사
+        -   `{ type: 'multiShot', chance: 0.1, count: 1 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'아폴론의 활'**: (현재 specialEffects 없음)
+    -   **설명**: '태양의 신이 사용했던 불꽃의 활.'
+    -   **추가 제안**: '불꽃' 컨셉 강화를 위해 원거리 공격 시 일정 확률로 적에게 화상 효과
+        -   `{ type: 'statusEffectBurn', chance: 0.15, magnitude: 2, duration: 3 }` (기존 SPECIAL_AFFIX_TYPES 활용)
+
+-   **'타니아의 활'**: (현재 specialEffects 없음)
+    -   **설명**: '숲의 정령이 깃든 엘프 여왕의 활.'
+    -   **추가 제안**: '숲의 정령' 컨셉 강화를 위해 회피 성공 시 잠시 동안 이동 속도 증가
+        -   `{ type: 'speedOnEvade', value: 0.1, duration: 2 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'하데스의 저승 석궁'**: (현재 specialEffects 없음)
+    -   **설명**: '저승의 신이 다루는 맹독의 석궁.'
+    -   **추가 제안**: '맹독' 컨셉 강화를 위해 원거리 공격 시 강력한 독 피해 추가 및 적 이동 속도 감소
+        -   `{ type: 'statusEffectPoison', chance: 0.2, magnitude: 3, duration: 5 }` (기존 SPECIAL_AFFIX_TYPES 활용)
+        -   `{ type: 'onHitSlow', chance: 0.1, magnitude: 0.2, duration: 3 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+### chest (상의)
+
+-   **'아테나의 흉갑'**: (현재 specialEffects 없음)
+    -   **설명**: '지혜와 전쟁의 여신이 수여한 방어구.'
+    -   **추가 제안**: '지혜' 컨셉 강화를 위해 방어력 증가 및 일정 확률로 상태 이상 저항
+        -   `{ type: 'statusEffectResistance', value: 0.1 }` (기존 AFFIX_TYPES 활용 가능하지만 specialEffects로 통합 제안)
+
+-   **'헤라클레스의 갑옷'**: (현재 specialEffects 없음)
+    -   **설명**: '영웅 헤라클레스의 불굴의 힘이 깃든 갑옷.'
+    -   **추가 제안**: '불굴의 힘' 컨셉 강화를 위해 받는 피해 감소 및 일정 체력 이하 시 방어력 추가 증가
+        -   `{ type: 'damageReductionAura', value: 0.05 }` (기존 SPECIAL_AFFIX_TYPES 활용)
+        -   `{ type: 'lowHpDefenseBoost', threshold: 0.3, value: 0.15 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'오딘의 로브'**: (현재 specialEffects 없음)
+    -   **설명**: '모든 지식을 담은 위대한 신의 로브.'
+    -   **추가 제안**: '지식' 컨셉 강화를 위해 마법 공격력 증가 및 MP 회복 속도 증가
+        -   `{ type: 'manaRegen', value: 5 }` (기존 AFFIX_TYPES 활용 가능하지만 specialEffects로 통합 제안)
+
+-   **'프레이야의 망토'**: (현재 specialEffects 없음)
+    -   **설명**: '사랑과 풍요의 여신이 수여한 행운의 망토.'
+    -   **추가 제안**: '행운' 컨셉 강화를 위해 매직 파인드/골드 파인드 증가 및 일정 확률로 적 처치 시 추가 아이템 드롭
+        -   `{ type: 'goldBonus', value: 0.1 }` (기존 SPECIAL_AFFIX_TYPES 활용)
+        -   `{ type: 'magicFindBonus', value: 0.05 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'파프니르의 갑옷'**: (현재 specialEffects 없음)
+    -   **설명**: '탐욕스러운 용 파프니르의 비늘로 만들어진 갑옷.'
+    -   **추가 제안**: '탐욕' 컨셉 강화를 위해 화염 피해 저항 증가 및 몬스터 처치 시 일정 확률로 골드 추가 획득
+        -   `{ type: 'goldBonus', value: 0.15 }` (기존 SPECIAL_AFFIX_TYPES 활용)
+
+### hat (모자)
+
+-   **'아레스의 투구'**: (현재 specialEffects 없음)
+    -   **설명**: '전쟁의 신이 착용하던 불멸의 투구.'
+    -   **추가 제안**: '전쟁' 컨셉 강화를 위해 물리 공격력 증가 및 일정 확률로 적에게 공포 효과
+        -   `{ type: 'onHitFear', chance: 0.05, duration: 2 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'토르의 투구'**: (현재 specialEffects 없음)
+    -   **설명**: '천둥의 힘이 깃든 신의 투구.'
+    -   **추가 제안**: '천둥' 컨셉 강화를 위해 번개 피해 저항 증가 및 공격 시 일정 확률로 번개 연쇄 발동
+        -   `{ type: 'chainLightningProc', chance: 0.1 }` (기존 SPECIAL_AFFIX_TYPES 활용)
+
+-   **'메르가드의 모자'**: (현재 specialEffects 없음)
+    -   **설명**: '고대 마법사의 지식이 담긴 모자.'
+    -   **추가 제안**: '지식' 컨셉 강화를 위해 마법 공격력 증가 및 MP 소모 감소
+        -   `{ type: 'manaCostReduction', value: 0.1 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'발키리의 왕관'**: (현재 specialEffects 없음)
+    -   **설명**: '전장의 영혼을 인도하는 발키리의 왕관.'
+    -   **추가 제안**: '영혼 인도' 컨셉 강화를 위해 아군 치유 효과 증가 (플레이어에게 적용될 경우) 및 체력 회복량 증가
+        -   `{ type: 'healingEffectiveness', value: 0.1 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+        -   `{ type: 'hpRegen', value: 5 }` (기존 AFFIX_TYPES 활용 가능하지만 specialEffects로 통합 제안)
+
+### neck (목걸이)
+
+-   **'로키의 목걸이'**: (현재 specialEffects 없음)
+    -   **설명**: '장난의 신이 남긴 기만적인 목걸이.'
+    -   **추가 제안**: '장난' 컨셉 강화를 위해 회피율 증가 및 일정 확률로 적의 공격을 회피 시 무작위 위치로 순간 이동
+        -   `{ type: 'teleportOnEvade', chance: 0.05 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'프리그의 목걸이'**: (현재 specialEffects 없음)
+    -   **설명**: '사랑과 운명의 여신이 수여한 평화로운 목걸이.'
+    -   **추가 제안**: '평화' 컨셉 강화를 위해 모든 상태 이상 저항 증가 및 받는 피해 감소
+        -   `{ type: 'statusEffectResistance', value: 0.15 }` (기존 AFFIX_TYPES 활용 가능하지만 specialEffects로 통합 제안)
+        -   `{ type: 'damageReductionAura', value: 0.03 }` (기존 SPECIAL_AFFIX_TYPES 활용)
+
+-   **'오시리스의 눈'**: (현재 specialEffects 없음)
+    -   **설명**: '죽음과 부활의 신이 가진 영원의 눈.'
+    -   **추가 제안**: '영원' 컨셉 강화를 위해 MP 회복 속도 증가 및 죽음의 위기 시 생존 확률 증가
+        -   `{ type: 'manaRegen', value: 10 }` (기존 AFFIX_TYPES 활용 가능하지만 specialEffects로 통합 제안)
+        -   `{ type: 'chanceToSurviveLethal', chance: 0.05 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+### ring (반지)
+
+-   **'반지 중의 반지'**: (현재 specialEffects 없음)
+    -   **설명**: '모든 힘을 담고 있는 절대적인 반지.'
+    -   **추가 제안**: '절대적인' 컨셉 강화를 위해 모든 기본 스탯 증가 및 모든 원소 피해 증가
+        -   `{ type: 'allStatsBonus', value: 5 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+        -   `{ type: 'elementalDamageBonus', value: 0.1 }` (기존 AFFIX_TYPES 활용 가능하지만 specialEffects로 통합 제안)
+
+-   **'드로프니르'**: (현재 specialEffects 없음)
+    -   **설명**: '매 아홉 번째 밤마다 아홉 개의 새로운 반지를 만들어내는 황금 반지.'
+    -   **추가 제안**: '황금' 컨셉 강화를 위해 골드 파인드 대폭 증가 및 매직 파인드 추가 증가
+        -   `{ type: 'goldBonus', value: 0.25 }` (기존 SPECIAL_AFFIX_TYPES 활용)
+        -   `{ type: 'magicFindBonus', value: 0.1 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'우로보로스의 고리'**: (현재 specialEffects 없음)
+    -   **설명**: '뱀이 자신의 꼬리를 물고 있는 영원과 순환의 상징.'
+    -   **추가 제안**: '영원' 컨셉 강화를 위해 HP/MP 회복 속도 증가 및 죽음 후 일정 확률로 부활
+        -   `{ type: 'hpRegen', value: 10 }` (기존 AFFIX_TYPES 활용 가능하지만 specialEffects로 통합 제안)
+        -   `{ type: 'manaRegen', value: 10 }` (기존 AFFIX_TYPES 활용 가능하지만 specialEffects로 통합 제안)
+        -   `{ type: 'chanceToResurrect', chance: 0.01 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+### subWeapon (보조무기)
+
+-   **'아이기스'**: (현재 specialEffects 없음)
+    -   **설명**: '제우스의 방패로 모든 공격을 막아낸다.'
+    -   **추가 제안**: '방패' 컨셉 강화를 위해 물리/마법 방어력 추가 증가 및 일정 확률로 공격 반사
+        -   `{ type: 'physicalBlockChance', value: 0.15 }` (기존 SPECIAL_AFFIX_TYPES 활용)
+        -   `{ type: 'reflectDamage', chance: 0.1, magnitude: 0.2 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'호루스의 눈'**: (현재 specialEffects 없음)
+    -   **설명**: '고대 이집트의 지혜가 담긴 수호의 눈.'
+    -   **추가 제안**: '지혜' 컨셉 강화를 위해 매직 파인드 증가 및 일정 확률로 적에게 상태 이상 (실명) 부여
+        -   `{ type: 'magicFindBonus', value: 0.1 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+        -   `{ type: 'onHitBlind', chance: 0.1, duration: 2 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+---
+
+## 2. Mystic (신화) 등급 고유 아이템 SPECIAL_AFFIXES -> SPECIAL_EFFECTS 전환 및 추가 제안
+
+### mainWeapon (주무기)
+
+-   **'데미안의 복수'**: (현재 specialEffects 없음)
+    -   **설명**: '악마의 힘이 깃든 파괴적인 검.'
+    -   **추가 제안**: '악마의 힘' 컨셉 강화를 위해 치명타 시 추가 피해 및 몬스터 처치 시 짧은 시간 동안 공격력 증가
+        -   `{ type: 'critDamageBonus', value: 0.1 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+        -   `{ type: 'damageBoostOnKill', value: 0.15, duration: 5 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'천상의 지팡이'**: (현재 specialEffects 없음)
+    -   **설명**: '천사들의 힘을 빌어 마법을 증폭시키는 지팡이.'
+    -   **추가 제안**: '천사들의 힘' 컨셉 강화를 위해 마법 공격력 증가 및 일정 확률로 주변 아군 치유
+        -   `{ type: 'healingAura', value: 10 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'태양파괴자의 활'**: (현재 specialEffects 없음)
+    -   **설명**: '태양의 불꽃을 담아 적을 섬멸하는 활.'
+    -   **추가 제안**: '태양의 불꽃' 컨셉 강화를 위해 원거리 공격 시 화염 범위 피해 및 적의 화염 저항 감소
+        -   `{ type: 'areaFireDamage', chance: 0.1, magnitude: 20 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+        -   `{ type: 'fireResistanceDebuff', chance: 0.05, magnitude: 0.1, duration: 5 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'스타포스 블레이드'**: (현재 specialEffects 없음)
+    -   **설명**: '별의 힘으로 만들어진 빛나는 검.'
+    -   **추가 제안**: '별의 힘' 컨셉 강화를 위해 물리/마법 공격 시 일정 확률로 별똥별 소환 (범위 마법 피해)
+        -   `{ type: 'meteorStrikeProc', chance: 0.08, magnitude: 50 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+### chest (상의)
+
+-   **'용언의 갑옷'**: (현재 specialEffects 있음)
+    -   **설명**: '고대 용의 언어가 새겨진 견고한 갑옷.'
+    -   **현재 specialEffects**: `[{ type: 'damageReductionAura', value: 0.06 }]`
+    -   **추가 제안**: '용의 언어' 컨셉 강화를 위해 모든 원소 저항 추가 증가 및 일정 확률로 적의 공격을 무효화
+        -   `{ type: 'allElementalResistance', value: 0.1 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+        -   `{ type: 'chanceToNegateDamage', chance: 0.03 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'밤의 장막'**: (현재 specialEffects 없음)
+    -   **설명**: '밤의 어둠 속에 숨어 적을 기습하는 튜닉.'
+    -   **추가 제안**: '밤의 어둠' 컨셉 강화를 위해 회피율 증가 및 은신 상태에서 공격 시 추가 피해
+        -   `{ type: 'evasion', value: 0.05 }` (기존 AFFIX_TYPES 활용, specialEffects로 통합 제안)
+        -   `{ type: 'stealthAttackBonus', value: 0.2 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+### hat (모자)
+
+-   **'솔로몬의 지혜'**: (현재 specialEffects 없음)
+    -   **설명**: '고대 왕의 지혜가 깃든 왕관.'
+    -   **추가 제안**: '지혜' 컨셉 강화를 위해 마법 공격력/방어력 증가 및 MP 소모 감소
+        -   `{ type: 'manaCostReduction', value: 0.15 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+---
+
+## 3. Legacy (유산) 등급 고유 아이템 SPECIAL_AFFIXES -> SPECIAL_EFFECTS 전환 및 추가 제안
+
+### mainWeapon (주무기)
+
+-   **'운명의 파괴자'**: (현재 specialEffects 없음)
+    -   **설명**: '운명을 거스르는 절대적인 파괴의 검.'
+    -   **추가 제안**: '파괴자' 컨셉 강화를 위해 치명타 시 일정 확률로 적에게 강력한 즉사 효과 (낮은 확률)
+        -   `{ type: 'onCritInstantKill', chance: 0.01 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'세계수의 가지'**: (현재 specialEffects 없음)
+    -   **설명**: '모든 생명의 근원, 세계수의 힘이 깃든 지팡이.'
+    -   **추가 제안**: '생명의 근원' 컨셉 강화를 위해 주기적으로 주변 아군 치유 및 일정 확률로 적에게 속박 효과 부여
+        -   `{ type: 'healingAura', value: 20, interval: 3 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+        -   `{ type: 'chanceToRoot', chance: 0.15 }` (기존 SPECIAL_AFFIX_TYPES 활용)
+
+-   **'아스가르드의 심장'**: (현재 specialEffects 없음)
+    -   **설명**: '신들의 고향 아스가르드의 핵으로 만들어진 망치.'
+    -   **추가 제안**: '신들의 힘' 컨셉 강화를 위해 물리 공격 시 일정 확률로 광역 물리 피해 및 스턴 효과
+        -   `{ type: 'areaPhysicalDamageStun', chance: 0.05, magnitude: 100, duration: 2 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'아발론의 속삭임'**: (현재 specialEffects 없음)
+    -   **설명**: '전설의 섬 아발론에서 전해 내려오는 신비로운 활.'
+    -   **추가 제안**: '신비로운' 컨셉 강화를 위해 원거리 공격 시 일정 확률로 은신 상태로 진입 및 은신 상태에서 공격 시 치명타 확률 증가
+        -   `{ type: 'stealthOnRangedHit', chance: 0.1, duration: 3 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+        -   `{ type: 'stealthCritChanceBonus', value: 0.25 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+### chest (상의)
+
+-   **'아카샤의 기록'**: (현재 specialEffects 없음)
+    -   **설명**: '우주 만물의 지식이 담겨 있는 기록의 로브.'
+    -   **추가 제안**: '지식' 컨셉 강화를 위해 마법 공격 시 MP 소모 없이 발동 및 일정 확률로 적의 버프 해제
+        -   `{ type: 'freeSpellCast', chance: 0.1 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+        -   `{ type: 'onSpellHitDispelBuff', chance: 0.15 }` (새로운 SPECIAL_AFFIX_TYPES 필요)
+
+-   **'영광의 판금 갑옷'**: (현재 specialEffects 없음)
+    -   **설명**: '전설적인 전사들의 영광이 깃든 견고한 갑옷.'
+    -   **추가 제안**: '견고함' 컨셉 강화를 위해 받는 물리/마법 피해 감소 및 체력 재생 증가
+        -   `{ type: 'damageReductionAura', value: 0.1 }` (기존 SPECIAL_AFFIX_TYPES 활용)
+        -   `{ type: 'hpRegen', value: 15 }` (기존 AFFIX_TYPES 활용 가능하지만 specialEffects로 통합 제안)
+
+---
+
+## 4. 새로운 SPECIAL_AFFIX_TYPES 정의 제안 (constants.js에 추가)
+
+아래에 제안된 새로운 `type`들을 `constants.js`의 `SPECIAL_AFFIX_TYPES` 객체에 추가해야 합니다.
+
+```javascript
+// 새로운 SPECIAL_AFFIX_TYPES
+statusEffectImmunityOnHit: {
+    description: (chance, duration) => `피격 시 ${(chance * 100).toFixed(0)}% 확률로 ${duration}초간 상태 이상 면역`,
+    effect: { type: 'onHit', effectType: 'statusImmunity', chance: 0, duration: 0 },
+    format: (affix) => `피격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 ${affix.duration}초간 상태 이상 면역`
+},
+lifestealOnKill: {
+    description: (value, duration) => `몬스터 처치 시 ${value * 100}% 추가 생명력 흡수 ${duration}초간 지속`,
+    effect: { type: 'onKill', stat: 'lifestealBonus', value: 0, duration: 0 },
+    format: (affix) => `몬스터 처치 시 ${(affix.value * 100).toFixed(0)}% 추가 생명력 흡수 ${affix.duration}초간 지속`
+},
+onHitAttackDebuff: {
+    description: (chance, magnitude, duration) => `피격 시 ${(chance * 100).toFixed(0)}% 확률로 적 공격력 ${magnitude * 100}% 감소 ${duration}초간 지속`,
+    effect: { type: 'onHit', effectType: 'attackDebuff', chance: 0, magnitude: 0, duration: 0 },
+    format: (affix) => `피격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 적 공격력 ${(affix.magnitude * 100).toFixed(0)}% 감소 ${affix.duration}초간 지속`
+},
+onAttackStun: {
+    description: (chance, duration) => `공격 시 ${(chance * 100).toFixed(0)}% 확률로 적 ${duration}초간 기절`,
+    effect: { type: 'onAttack', effectType: 'stun', chance: 0, duration: 0 },
+    format: (affix) => `공격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 적 ${affix.duration}초간 기절`
+},
+onHitDefenseBreak: {
+    description: (chance, magnitude, duration) => `피격 시 ${(chance * 100).toFixed(0)}% 확률로 적 방어력 ${magnitude * 100}% 감소 ${duration}초간 지속`,
+    effect: { type: 'onHit', effectType: 'defenseBreak', chance: 0, magnitude: 0, duration: 0 },
+    format: (affix) => `피격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 적 방어력 ${(affix.magnitude * 100).toFixed(0)}% 감소 ${affix.duration}초간 지속`
+},
+speedBoostOnKill: {
+    description: (value, duration) => `몬스터 처치 시 ${(value * 100).toFixed(0)}% 이동 속도 증가 ${duration}초간 지속`,
+    effect: { type: 'onKill', stat: 'movementSpeedBonus', value: 0, duration: 0 },
+    format: (affix) => `몬스터 처치 시 ${(affix.value * 100).toFixed(0)}% 이동 속도 증가 ${affix.duration}초간 지속`
+},
+movementSpeedBonus: {
+    description: (value) => `이동 속도 ${value * 100}% 증가`,
+    effect: { type: 'passive', stat: 'speed', value: 0 },
+    format: (affix) => `이동 속도 ${(affix.value * 100).toFixed(0)}% 증가`
+},
+magicFindBonus: {
+    description: (value) => `매직 파인드 ${value * 100}% 증가`,
+    effect: { type: 'passive', stat: 'magicFind', value: 0 },
+    format: (affix) => `매직 파인드 ${(affix.value * 100).toFixed(0)}% 증가`
+},
+allElementalResistance: { // All elemental resistance
+    description: (value) => `모든 원소 저항 ${value * 100}% 증가`,
+    effect: { type: 'passive', stat: 'elementalResistance', value: 0 },
+    format: (affix) => `모든 원소 저항 ${(affix.value * 100).toFixed(0)}% 증가`
+},
+multiShot: {
+    description: (chance, count) => `원거리 공격 시 ${(chance * 100).toFixed(0)}% 확률로 ${count}발의 추가 화살 발사`,
+    effect: { type: 'onRangedAttack', effectType: 'multiShot', chance: 0, count: 0 },
+    format: (affix) => `원거리 공격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 ${affix.count}발의 추가 화살 발사`
+},
+speedOnEvade: {
+    description: (value, duration) => `회피 성공 시 ${(value * 100).toFixed(0)}% 이동 속도 증가 ${duration}초간 지속`,
+    effect: { type: 'onEvade', stat: 'movementSpeedBonus', value: 0, duration: 0 },
+    format: (affix) => `회피 성공 시 ${(affix.value * 100).toFixed(0)}% 이동 속도 증가 ${affix.duration}초간 지속`
+},
+onHitSlow: {
+    description: (chance, magnitude, duration) => `피격 시 ${(chance * 100).toFixed(0)}% 확률로 적 이동 속도 ${magnitude * 100}% 감소 ${duration}초간 지속`,
+    effect: { type: 'onHit', effectType: 'slow', chance: 0, magnitude: 0, duration: 0 },
+    format: (affix) => `피격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 적 이동 속도 ${(affix.magnitude * 100).toFixed(0)}% 감소 ${affix.duration}초간 지속`
+},
+lowHpDefenseBoost: {
+    description: (threshold, value) => `체력 ${(threshold * 100).toFixed(0)}% 이하 시 방어력 ${(value * 100).toFixed(0)}% 추가 증가`,
+    effect: { type: 'passive', trigger: 'lowHp', threshold: 0, value: 0 },
+    format: (affix) => `체력 ${(affix.threshold * 100).toFixed(0)}% 이하 시 방어력 ${(affix.value * 100).toFixed(0)}% 추가 증가`
+},
+onHitFear: {
+    description: (chance, duration) => `공격 시 ${(chance * 100).toFixed(0)}% 확률로 적 ${duration}초간 공포에 빠짐`,
+    effect: { type: 'onHit', effectType: 'fear', chance: 0, duration: 0 },
+    format: (affix) => `공격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 적 ${affix.duration}초간 공포에 빠짐`
+},
+manaCostReduction: {
+    description: (value) => `MP 소모 ${value * 100}% 감소`,
+    effect: { type: 'passive', stat: 'manaCostReduction', value: 0 },
+    format: (affix) => `MP 소모 ${(affix.value * 100).toFixed(0)}% 감소`
+},
+healingEffectiveness: {
+    description: (value) => `자신 및 아군 치유 효과 ${value * 100}% 증가`,
+    effect: { type: 'passive', stat: 'healingEffectiveness', value: 0 },
+    format: (affix) => `자신 및 아군 치유 효과 ${(affix.value * 100).toFixed(0)}% 증가`
+},
+teleportOnEvade: {
+    description: (chance) => `회피 성공 시 ${(chance * 100).toFixed(0)}% 확률로 무작위 위치로 순간 이동`,
+    effect: { type: 'onEvade', effectType: 'teleport', chance: 0 },
+    format: (affix) => `회피 성공 시 ${(affix.chance * 100).toFixed(0)}% 확률로 무작위 위치로 순간 이동`
+},
+chanceToSurviveLethal: {
+    description: (chance) => `죽음의 위기 시 ${(chance * 100).toFixed(0)}% 확률로 생존`,
+    effect: { type: 'passive', effectType: 'surviveLethal', chance: 0 },
+    format: (affix) => `죽음의 위기 시 ${(affix.chance * 100).toFixed(0)}% 확률로 생존`
+},
+allStatsBonus: {
+    description: (value) => `모든 기본 스탯 +${value}`,
+    effect: { type: 'passive', stat: 'allStats', value: 0 },
+    format: (affix) => `모든 기본 스탯 +${affix.value}`
+},
+chanceToResurrect: {
+    description: (chance) => `죽음 시 ${(chance * 100).toFixed(0)}% 확률로 부활`,
+    effect: { type: 'onDeath', effectType: 'resurrect', chance: 0 },
+    format: (affix) => `죽음 시 ${(affix.chance * 100).toFixed(0)}% 확률로 부활`
+},
+reflectDamage: {
+    description: (chance, magnitude) => `피격 시 ${(chance * 100).toFixed(0)}% 확률로 받는 피해의 ${magnitude * 100}% 반사`,
+    effect: { type: 'onHit', effectType: 'reflectDamage', chance: 0, magnitude: 0 },
+    format: (affix) => `피격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 받는 피해의 ${(affix.magnitude * 100).toFixed(0)}% 반사`
+},
+onHitBlind: {
+    description: (chance, duration) => `피격 시 ${(chance * 100).toFixed(0)}% 확률로 적 ${duration}초간 실명`,
+    effect: { type: 'onHit', effectType: 'blind', chance: 0, duration: 0 },
+    format: (affix) => `피격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 적 ${affix.duration}초간 실명`
+},
+critDamageBonus: {
+    description: (value) => `치명타 피해량 ${value * 100}% 추가 증가`,
+    effect: { type: 'passive', stat: 'critDamage', value: 0 },
+    format: (affix) => `치명타 피해량 ${(affix.value * 100).toFixed(0)}% 추가 증가`
+},
+damageBoostOnKill: {
+    description: (value, duration) => `몬스터 처치 시 공격력 ${value * 100}% 증가 ${duration}초간 지속`,
+    effect: { type: 'onKill', stat: 'physicalAttackBonus', value: 0, duration: 0 },
+    format: (affix) => `몬스터 처치 시 공격력 ${(affix.value * 100).toFixed(0)}% 증가 ${affix.duration}초간 지속`
+},
+healingAura: {
+    description: (value) => `주변 아군 초당 체력 ${value} 회복 오라`,
+    effect: { type: 'aura', stat: 'hpRegen', value: 0 },
+    format: (affix) => `주변 아군 초당 체력 ${affix.value} 회복 오라`
+},
+areaFireDamage: {
+    description: (chance, magnitude) => `공격 시 ${(chance * 100).toFixed(0)}% 확률로 ${magnitude} 화염 범위 피해`,
+    effect: { type: 'onAttack', effectType: 'areaDamage', elementalType: 'fire', magnitude: 0, chance: 0 },
+    format: (affix) => `공격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 ${affix.magnitude} 화염 범위 피해`
+},
+fireResistanceDebuff: {
+    description: (chance, magnitude, duration) => `공격 시 ${(chance * 100).toFixed(0)}% 확률로 적 화염 저항 ${magnitude * 100}% 감소 ${duration}초간 지속`,
+    effect: { type: 'onAttack', effectType: 'elementalResistanceDebuff', elementalType: 'fire', chance: 0, magnitude: 0, duration: 0 },
+    format: (affix) => `공격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 적 화염 저항 ${(affix.magnitude * 100).toFixed(0)}% 감소 ${affix.duration}초간 지속`
+},
+meteorStrikeProc: {
+    description: (chance, magnitude) => `공격 시 ${(chance * 100).toFixed(0)}% 확률로 ${magnitude} 별똥별 소환`,
+    effect: { type: 'onAttack', effectType: 'meteorStrike', chance: 0, magnitude: 0 },
+    format: (affix) => `공격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 ${affix.magnitude} 별똥별 소환`
+},
+chanceToNegateDamage: {
+    description: (chance) => `피격 시 ${(chance * 100).toFixed(0)}% 확률로 받는 피해 무효화`,
+    effect: { type: 'onHit', effectType: 'negateDamage', chance: 0 },
+    format: (affix) => `피격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 받는 피해 무효화`
+},
+stealthAttackBonus: {
+    description: (value) => `은신 상태에서 공격 시 공격력 ${value * 100}% 증가`,
+    effect: { type: 'passive', trigger: 'stealthAttack', value: 0 },
+    format: (affix) => `은신 상태에서 공격 시 공격력 ${(affix.value * 100).toFixed(0)}% 증가`
+},
+onCritInstantKill: {
+    description: (chance) => `치명타 시 ${(chance * 100).toFixed(0)}% 확률로 적 즉사`,
+    effect: { type: 'onCrit', effectType: 'instantKill', chance: 0 },
+    format: (affix) => `치명타 시 ${(affix.chance * 100).toFixed(0)}% 확률로 적 즉사`
+},
+areaPhysicalDamageStun: {
+    description: (chance, magnitude, duration) => `공격 시 ${(chance * 100).toFixed(0)}% 확률로 ${magnitude} 물리 범위 피해 및 ${duration}초간 기절`,
+    effect: { type: 'onAttack', effectType: 'areaDamageStun', elementalType: 'physical', magnitude: 0, chance: 0, duration: 0 },
+    format: (affix) => `공격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 ${affix.magnitude} 물리 범위 피해 및 ${affix.duration}초간 기절`
+},
+stealthOnRangedHit: {
+    description: (chance, duration) => `원거리 공격 시 ${(chance * 100).toFixed(0)}% 확률로 ${duration}초간 은신`,
+    effect: { type: 'onRangedAttack', effectType: 'stealth', chance: 0, duration: 0 },
+    format: (affix) => `원거리 공격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 ${affix.duration}초간 은신`
+},
+stealthCritChanceBonus: {
+    description: (value) => `은신 상태에서 치명타 확률 ${value * 100}% 증가`,
+    effect: { type: 'passive', trigger: 'stealthCrit', value: 0 },
+    format: (affix) => `은신 상태에서 치명타 확률 ${(affix.value * 100).toFixed(0)}% 증가`
+},
+freeSpellCast: {
+    description: (chance) => `마법 공격 시 ${(chance * 100).toFixed(0)}% 확률로 MP 소모 없이 발동`,
+    effect: { type: 'onSpellAttack', effectType: 'freeCast', chance: 0 },
+    format: (affix) => `마법 공격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 MP 소모 없이 발동`
+},
+onSpellHitDispelBuff: {
+    description: (chance) => `마법 공격 시 ${(chance * 100).toFixed(0)}% 확률로 적의 버프 해제`,
+    effect: { type: 'onSpellAttack', effectType: 'dispelBuff', chance: 0 },
+    format: (affix) => `마법 공격 시 ${(affix.chance * 100).toFixed(0)}% 확률로 적의 버프 해제`
+}
+```

@@ -1,0 +1,599 @@
+
+     3 export const UNIQUE_ITEM_NAMES_BY_RARITY_AND_SLOT = {
+     4     // Legendary Unique Items
+     5     legendary: {
+     6         mainWeapon: {
+     7             // Swords
+     8             '엑스칼리버': {
+     9                 baseName: '강철 장검', // 어떤 일반 아이템을 기반으로 하는지
+    10                 stats: { strength: 20, vitality: 10 },
+    11                 affixes: [{ type: 'physicalAttack', value: 30 }, { type: 'critChance', value: 0.1 }],
+    12                 weaponType: 'physical',
+    13                 description: '전설적인 영웅만이 휘두를 수 있는 신성한 검.',
+    14                 color: '#FFD700'
+    15             },
+    16             '아론다이트': {
+    17                 baseName: '대검',
+    18                 stats: { strength: 25, agility: 5 },
+    19                 affixes: [{ type: 'physicalAttack', value: 35 }, { type: 'lifesteal', value: 0.05 }],
+    20                 weaponType: 'physical',
+    21                 description: '호수의 기사가 사용했던 피에 굶주린 검.',
+    22                 color: '#FFD700'
+    23             },
+    24             '궁니르': {
+    25                 baseName: '미늘창', // 스피어/폴암 계열
+    26                 stats: { strength: 18, mentality: 12 },
+    27                 affixes: [{ type: 'physicalAttack', value: 28 }, { type: 'elementalDamage', elementType: 'lightning', min: 10, max: 20 }],
+    28                 weaponType: 'physical',
+    29                 description: '결코 빗나가지 않는다는 신의 창.',
+    30                 color: '#FFD700'
+    31             },
+    32             '티르빙': {
+    33                 baseName: '대검',
+    34                 stats: { strength: 30, luck: 10 },
+    35                 affixes: [{ type: 'physicalAttack', value: 40 }, { type: 'critDamage', value: 0.2 }],
+    36                 weaponType: 'physical',
+    37                 description: '들기만 해도 주인을 파멸로 이끄는 저주받은 검.',
+    38                 color: '#FFD700'
+    39             },
+    40             '프라가라흐': {
+    41                 baseName: '대검',
+    42                 stats: { intelligence: 20, agility: 10 },
+    43                 affixes: [{ type: 'magicalAttack', value: 30 }, { type: 'statusEffectBleed', chance: 0.1, magnitude: 2, duration: 3 }],
+    44                 weaponType: 'magical', // 마법검으로 분류
+    45                 description: '대답하는 검이라 불리는 요정의 마검.',
+    46                 color: '#FFD700'
+    47             },
+    48             // Axes
+    49             '묠니르': {
+    50                 baseName: '전투 도끼',
+    51                 stats: { strength: 35, vitality: 15 },
+    52                 affixes: [{ type: 'physicalAttack', value: 45 }, { type: 'elementalDamage', elementType: 'lightning', min: 15, max: 25 }],
+    53                 weaponType: 'physical',
+    54                 description: '천둥의 신이 사용하는 강력한 망치.',
+    55                 color: '#FFD700'
+    56             },
+    57             '스톰브레이커': {
+    58                 baseName: '양손 도끼',
+    59                 stats: { strength: 40, mentality: 10 },
+    60                 affixes: [{ type: 'physicalAttack', value: 50 }, { type: 'critChance', value: 0.15 }],
+    61                 weaponType: 'physical',
+    62                 description: '신들의 무기를 부수는 거대한 도끼.',
+    63                 color: '#FFD700'
+    64             },
+    65             '흐룬팅': {
+    66                 baseName: '피의 도끼', // BASE_ITEMS에 없으므로 '전투 도끼'로 대체
+    67                 stats: { strength: 28, vitality: 12 },
+    68                 affixes: [{ type: 'physicalAttack', value: 38 }, { type: 'lifesteal', value: 0.08 }],
+    69                 weaponType: 'physical',
+    70                 description: '적의 피를 마시면 강해지는 도끼.',
+    71                 color: '#FFD700'
+    72             },
+    73             // Staves
+    74             '헤르메스의 케뤼케이온': {
+    75                 baseName: '수정 지팡이',
+    76                 stats: { intelligence: 25, mentality: 15 },
+    77                 affixes: [{ type: 'magicalAttack', value: 35 }, { type: 'magicFind', value: 0.1 }],
+    78                 weaponType: 'magical',
+    79                 description: '신들의 전령이 사용하던 마법 지팡이.',
+    80                 color: '#FFD700'
+    81             },
+    82             '이둔의 지팡이': {
+    83                 baseName: '수정 지팡이',
+    84                 stats: { vitality: 20, mentality: 20 },
+    85                 affixes: [{ type: 'magicalDefense', value: 25 }, { type: 'maxHp', value: 100 }], // maxHp는 derived stat이므로 직접 추가.
+    86                 weaponType: 'magical',
+    87                 description: '영원한 젊음을 가져다주는 황금 사과의 지팡이.',
+    88                 color: '#FFD700'
+    89             },
+    90             '게피온의 지팡이': {
+    91                 baseName: '현자의 지팡이',
+    92                 stats: { intelligence: 30, mentality: 25 },
+    93                 affixes: [{ type: 'magicalAttack', value: 45 }, { type: 'elementalDamageBonus', value: 0.2 }],
+    94                 weaponType: 'magical',
+    95                 description: '모든 원소를 다루는 대현자의 지팡이.',
+    96                 color: '#FFD700'
+    97             },
+    98             // Bows
+    99             '아르테미스의 활': {
+   100                 baseName: '장궁',
+   101                 stats: { agility: 25, luck: 10 },
+   102                 affixes: [{ type: 'rangedAttack', value: 40 }, { type: 'critChance', value: 0.12 }],
+   103                 weaponType: 'ranged',
+   104                 description: '사냥의 여신이 사용했던 신비로운 활.',
+   105                 color: '#FFD700'
+   106             },
+   107             '아폴론의 활': {
+   108                 baseName: '장궁',
+   109                 stats: { agility: 20, mentality: 15 },
+   110                 affixes: [{ type: 'rangedAttack', value: 35 }, { type: 'elementalDamage', elementType: 'fire', min: 10, max: 20 }],
+   111                 weaponType: 'ranged',
+   112                 description: '태양의 신이 사용했던 불꽃의 활.',
+   113                 color: '#FFD700'
+   114             },
+   115             '타니아의 활': {
+   116                 baseName: '엘프 활',
+   117                 stats: { agility: 30, luck: 5 },
+   118                 affixes: [{ type: 'rangedAttack', value: 45 }, { type: 'evasion', value: 0.05 }],
+   119                 weaponType: 'ranged',
+   120                 description: '숲의 정령이 깃든 엘프 여왕의 활.',
+   121                 color: '#FFD700'
+   122             },
+   123             // Crossbows
+   124             '하데스의 저승 석궁': {
+   125                 baseName: '강철 석궁',
+   126                 stats: { strength: 15, agility: 25 },
+   127                 affixes: [{ type: 'rangedAttack', value: 40 }, { type: 'elementalDamage', elementType: 'dark', min: 15, max: 30 }],
+   128                 weaponType: 'ranged',
+   129                 description: '저승의 신이 다루는 맹독의 석궁.',
+   130                 color: '#FFD700'
+   131             },
+   132         },
+   133         chest: {
+   134             '아테나의 흉갑': {
+   135                 baseName: '판금 갑옷',
+   136                 stats: { strength: 15, vitality: 25 },
+   137                 affixes: [{ type: 'physicalDefense', value: 30 }, { type: 'magicalDefense', value: 15 }],
+   138                 description: '지혜와 전쟁의 여신이 수여한 방어구.',
+   139                 color: '#FFD700'
+   140             },
+   141             '헤라클레스의 갑옷': {
+   142                 baseName: '판금 갑옷',
+   143                 stats: { strength: 30, vitality: 20 },
+   144                 affixes: [{ type: 'physicalDefense', value: 40 }, { type: 'maxHp', value: 150 }],
+   145                 description: '영웅 헤라클레스의 불굴의 힘이 깃든 갑옷.',
+   146                 color: '#FFD700'
+   147             },
+   148             '오딘의 로브': {
+   149                 baseName: '마법사 로브',
+   150                 stats: { intelligence: 25, mentality: 25 },
+   151                 affixes: [{ type: 'magicalAttack', value: 30 }, { type: 'maxMp', value: 100 }],
+   152                 description: '모든 지식을 담은 위대한 신의 로브.',
+   153                 color: '#FFD700'
+   154             },
+   155             '프레이야의 망토': {
+   156                 baseName: '마법사 로브',
+   157                 stats: { agility: 20, luck: 20 },
+   158                 affixes: [{ type: 'magicFind', value: 0.15 }, { type: 'evasion', value: 0.08 }],
+   159                 description: '사랑과 풍요의 여신이 수여한 행운의 망토.',
+   160                 color: '#FFD700'
+   161             },
+   162             '파프니르의 갑옷': {
+   163                 baseName: '용의 비늘 갑옷',
+   164                 stats: { strength: 20, vitality: 30 },
+   165                 affixes: [{ type: 'physicalDefense', value: 35 }, { type: 'elementalDamageResistance_fire', value: 0.2 }], // 저항력 (새로운 affix 타입 필요)
+   166                 description: '탐욕스러운 용 파프니르의 비늘로 만들어진 갑옷.',
+   167                 color: '#FFD700'
+   168             },
+   169         },
+   170         hat: {
+   171             '아레스의 투구': {
+   172                 baseName: '강철 투구',
+   173                 stats: { strength: 20, vitality: 10 },
+   174                 affixes: [{ type: 'physicalDefense', value: 20 }, { type: 'critDamage', value: 0.15 }],
+   175                 description: '전쟁의 신이 착용하던 불멸의 투구.',
+   176                 color: '#FFD700'
+   177             },
+   178             '토르의 투구': {
+   179                 baseName: '강철 투구',
+   180                 stats: { strength: 25, mentality: 10 },
+   181                 affixes: [{ type: 'physicalAttack', value: 20 }, { type: 'elementalDamageResistance_lightning', value: 0.1 }],
+   182                 description: '천둥의 힘이 깃든 신의 투구.',
+   183                 color: '#FFD700'
+   184             },
+   185             '메르가드의 모자': {
+   186                 baseName: '마법사 모자',
+   187                 stats: { intelligence: 20, luck: 10 },
+   188                 affixes: [{ type: 'magicalAttack', value: 15 }, { type: 'magicFind', value: 0.1 }],
+   189                 description: '고대 마법사의 지식이 담긴 모자.',
+   190                 color: '#FFD700'
+   191             },
+   192             '발키리의 왕관': {
+   193                 baseName: '왕관',
+   194                 stats: { vitality: 20, mentality: 15 },
+   195                 affixes: [{ type: 'maxHp', value: 100 }, { type: 'magicalDefense', value: 15 }],
+   196                 description: '전장의 영혼을 인도하는 발키리의 왕관.',
+   197                 color: '#FFD700'
+   198             },
+   199         },
+   200         neck: {
+   201             '로키의 목걸이': {
+   202                 baseName: '은 아뮬렛',
+   203                 stats: { agility: 15, luck: 15 },
+   204                 affixes: [{ type: 'evasion', value: 0.05 }, { type: 'goldFind', value: 0.1 }],
+   205                 description: '장난의 신이 남긴 기만적인 목걸이.',
+   206                 color: '#FFD700'
+   207             },
+   208             '프리그의 목걸이': {
+   209                 baseName: '은 아뮬렛',
+   210                 stats: { mentality: 20, vitality: 10 },
+   211                 affixes: [{ type: 'magicalDefense', value: 10 }, { type: 'statusEffectResistance', value: 0.1 }], // 새로운 affix 타입
+   212                 description: '사랑과 운명의 여신이 수여한 평화로운 목걸이.',
+   213                 color: '#FFD700'
+   214             },
+   215             '오시리스의 눈': {
+   216                 baseName: '불멸의 목걸이',
+   217                 stats: { intelligence: 20, mentality: 20 },
+   218                 affixes: [{ type: 'maxMp', value: 80 }, { type: 'manaRegen', value: 5 }], // manaRegen (새로운 affix 타입)
+   219                 description: '죽음과 부활의 신이 가진 영원의 눈.',
+   220                 color: '#FFD700'
+   221             },
+   222         },
+   223         ring: {
+   224             '반지 중의 반지': {
+   225                 baseName: '마력의 반지',
+   226                 stats: { strength: 10, intelligence: 10, agility: 10, vitality: 10, mentality: 10, luck: 10 },
+   227                 affixes: [{ type: 'physicalAttack', value: 10 }, { type: 'magicalAttack', value: 10 }, { type: 'rangedAttack', value: 10 }],
+   228                 description: '모든 힘을 담고 있는 절대적인 반지.',
+   229                 color: '#FFD700'
+   230             },
+   231             '드로프니르': {
+   232                 baseName: '마력의 반지',
+   233                 stats: { luck: 25 },
+   234                 affixes: [{ type: 'goldFind', value: 0.2 }, { type: 'magicFind', value: 0.1 }],
+   235                 description: '매 아홉 번째 밤마다 아홉 개의 새로운 반지를 만들어내는 황금 반지.',
+   236                 color: '#FFD700'
+   237             },
+   238             '우로보로스의 고리': {
+   239                 baseName: '영원의 반지', // BASE_ITEMS에 없으므로 '마력의 반지'로 대체
+   240                 stats: { vitality: 20, mentality: 20 },
+   241                 affixes: [{ type: 'maxHp', value: 80 }, { type: 'maxMp', value: 50 }, { type: 'hpRegen', value: 3 }], // hpRegen (새로운 affix 타입)
+   242                 description: '뱀이 자신의 꼬리를 물고 있는 영원과 순환의 상징.',
+   243                 color: '#FFD700'
+   244             },
+   245         },
+   246         subWeapon: {
+   247             '아이기스': {
+   248                 baseName: '강철 방패',
+   249                 stats: { strength: 20, vitality: 30 },
+   250                 affixes: [{ type: 'physicalDefense', value: 40 }, { type: 'magicalDefense', value: 20 }],
+   251                 description: '제우스의 방패로 모든 공격을 막아낸다.',
+   252                 color: '#FFD700'
+   253             },
+   254             '호루스의 눈': {
+   255                 baseName: '수호의 보주',
+   256                 stats: { intelligence: 25, mentality: 25 },
+   257                 affixes: [{ type: 'magicalDefense', value: 30 }, { type: 'critChance', value: 0.05 }],
+   258                 description: '고대 이집트의 지혜가 담긴 수호의 눈.',
+   259                 color: '#FFD700'
+   260             },
+   261         }
+   262     },
+   263     // Mystic Unique Items
+   264     mystic: {
+   265         mainWeapon: {
+   266             '데미안의 복수': {
+   267                 baseName: '대검',
+   268                 stats: { strength: 40, agility: 15 },
+   269                 affixes: [{ type: 'physicalAttack', value: 60 }, { type: 'critDamage', value: 0.3 }],
+   270                 weaponType: 'physical',
+   271                 description: '악마의 힘이 깃든 파괴적인 검.',
+   272                 color: '#FF4500'
+   273             },
+   274             '천상의 지팡이': {
+   275                 baseName: '현자의 지팡이',
+   276                 stats: { intelligence: 40, mentality: 20 },
+   277                 affixes: [{ type: 'magicalAttack', value: 55 }, { type: 'elementalDamageBonus', value: 0.3 }],
+   278                 weaponType: 'magical',
+   279                 description: '천사들의 힘을 빌어 마법을 증폭시키는 지팡이.',
+   280                 color: '#FF4500'
+   281             },
+   282             '태양파괴자의 활': {
+   283                 baseName: '장궁',
+   284                 stats: { agility: 35, strength: 10 },
+   285                 affixes: [{ type: 'rangedAttack', value: 50 }, { type: 'elementalDamage', elementType: 'fire', min: 20, max: 40 }],
+   286                 weaponType: 'ranged',
+   287                 description: '태양의 불꽃을 담아 적을 섬멸하는 활.',
+   288                 color: '#FF4500'
+   289             },
+   290             '스타포스 블레이드': { // 광선검은 BASE_ITEMS에 없으므로 '강철 장검'으로 대체
+   291                 baseName: '강철 장검',
+   292                 stats: { intelligence: 30, agility: 20 },
+   293                 affixes: [{ type: 'magicalAttack', value: 45 }, { type: 'physicalAttack', value: 20 }, { type: 'critChance', value: 0.05 }],
+   294                 weaponType: 'magical',
+   295                 description: '별의 힘으로 만들어진 빛나는 검.',
+   296                 color: '#FF4500'
+   297             },
+   298         },
+   299         chest: {
+   300             '용언의 갑옷': {
+   301                 baseName: '용의 비늘 갑옷',
+   302                 stats: { strength: 30, vitality: 35 },
+   303                 affixes: [{ type: 'physicalDefense', value: 50 }, { type: 'maxHp', value: 200 }, { type: 'elementalDamageResistance', value: 0.1 }], // 모든 원소 저항력
+   304                 description: '고대 용의 언어가 새겨진 견고한 갑옷.',
+   305                 color: '#FF4500'
+   306             },
+   307             '밤의 장막': {
+   308                 baseName: '암살자의 튜닉',
+   309                 stats: { agility: 35, luck: 15 },
+   310                 affixes: [{ type: 'evasion', value: 0.1 }, { type: 'magicFind', value: 0.2 }],
+   311                 description: '밤의 어둠 속에 숨어 적을 기습하는 튜닉.',
+   312                 color: '#FF4500'
+   313             },
+   314         },
+   315         hat: {
+   316             '솔로몬의 지혜': {
+   317                 baseName: '왕관',
+   318                 stats: { intelligence: 30, mentality: 30 },
+   319                 affixes: [{ type: 'magicalAttack', value: 30 }, { type: 'maxMp', value: 150 }],
+   320                 description: '고대 왕의 지혜가 깃든 왕관.',
+   321                 color: '#FF4500'
+   322             },
+   323         },
+   324     },
+   325     // Legacy Unique Items
+   326     legacy: {
+   327         mainWeapon: {
+   328             '운명의 파괴자': {
+   329                 baseName: '룬 검',
+   330                 stats: { strength: 50, vitality: 25, luck: 25 },
+   331                 affixes: [{ type: 'physicalAttack', value: 80 }, { type: 'critChance', value: 0.2 }, { type: 'critDamage', value: 0.5 }],
+   332                 weaponType: 'physical',
+   333                 description: '운명을 거스르는 절대적인 파괴의 검.',
+   334                 color: '#00FFFF'
+   335             },
+   336             '세계수의 가지': {
+   337                 baseName: '현자의 지팡이', // 대현자의 지팡이는 BASE_ITEMS에 없으므로 '현자의 지팡이'로 대체
+   338                 stats: { intelligence: 50, mentality: 50, vitality: 30 },
+   339                 affixes: [{ type: 'magicalAttack', value: 70 }, { type: 'elementalDamageBonus', value: 0.5 }, { type: 'manaRegen', value: 10 }],
+   340                 weaponType: 'magical',
+   341                 description: '모든 생명의 근원, 세계수의 힘이 깃든 지팡이.',
+   342                 color: '#00FFFF'
+   343             },
+   344             '아스가르드의 심장': { // 파괴자의 망치는 BASE_ITEMS에 없으므로 '전쟁 망치'로 대체
+   345                 baseName: '전쟁 망치',
+   346                 stats: { strength: 60, vitality: 40, mentality: 20 },
+   347                 affixes: [{ type: 'physicalAttack', value: 90 }, { type: 'physicalDefense', value: 30 }, { type: 'maxHp', value: 300 }],
+   348                 weaponType: 'physical',
+   349                 description: '신들의 고향 아스가르드의 핵으로 만들어진 망치.',
+   350                 color: '#00FFFF'
+   351             },
+   352             '아발론의 속삭임': {
+   353                 baseName: '엘프 활',
+   354                 stats: { agility: 50, luck: 30, mentality: 20 },
+   355                 affixes: [{ type: 'rangedAttack', value: 75 }, { type: 'evasion', value: 0.15 }, { type: 'magicFind', value: 0.3 }],
+   356                 weaponType: 'ranged',
+   357                 description: '전설의 섬 아발론에서 전해 내려오는 신비로운 활.',
+   358                 color: '#00FFFF'
+   359             },
+   360         },
+   361         chest: {
+   362             '아카샤의 기록': { // 신의 로브는 BASE_ITEMS에 없으므로 '마법사 로브'로 대체
+   363                 baseName: '마법사 로브',
+   364                 stats: { intelligence: 50, mentality: 50, luck: 30 },
+   365                 affixes: [{ type: 'magicalAttack', value: 60 }, { type: 'maxMp', value: 200 }, { type: 'elementalDamageBonus', value: 0.3 }],
+   366                 description: '우주 만물의 지식이 담겨 있는 기록의 로브.',
+   367                 color: '#00FFFF'
+   368             },
+   369             '영광의 판금 갑옷': { // 불멸의 판금 갑옷은 BASE_ITEMS에 없으므로 '판금 갑옷'으로 대체
+   370                 baseName: '판금 갑옷',
+   371                 stats: { strength: 50, vitality: 50, physicalDefense: 30 },
+   372                 affixes: [{ type: 'physicalDefense', value: 70 }, { type: 'magicalDefense', value: 40 }, { type: 'maxHp', value: 400 }],
+   373                 description: '전설적인 전사들의 영광이 깃든 견고한 갑옷.',
+   374                 color: '#00FFFF'
+   375             },
+   376         },
+   377     }
+   378 };
+   379 
+   380 export const EQUIPMENT_SETS = [
+   381     // 1. 그림자 암살자 세트 (민첩, 치명타, 회피)
+   382     {
+   383         id: 'shadow_assassin',
+   384         name: '그림자 암살자 세트',
+   385         theme: '민첩한 움직임과 치명적인 일격으로 적을 제압하는 암살자를 위한 세트',
+   386         pieces: [
+   387             { name: '암살자의 후드', baseName: '가죽 모자', slot: 'hat', stats: { agility: 5 }, affixes: [{ type: 'evasion', value: 0.01 }] },
+   388             { name: '암살자의 튜닉', baseName: '가죽 조끼', slot: 'chest', stats: { agility: 7 }, affixes: [{ type: 'physicalAttack', value: 5 }] },
+   389             { name: '암살자의 장갑', baseName: '가죽 팔목 보호대', slot: 'wrist', stats: { agility: 3 }, affixes: [{ type: 'critChance', value: 0.01 }] },
+   390             { name: '암살자의 부츠', baseName: '가죽 장화', slot: 'feet', stats: { agility: 5 }, affixes: [{ type: 'speed', value: 3 }] },
+   391         ],
+   392         bonuses: [
+   393             { count: 2, effect: { stats: { agility: 5 }, affixes: [{ type: 'critChance', value: 0.03 }] } },
+   394             { count: 4, effect: { stats: { agility: 10 }, affixes: [{ type: 'critDamage', value: 0.15 }], special: { type: 'evasion_on_crit', chance: 0.1, duration: 1 } } },
+   395         ]
+   396     },
+   397     // 2. 빛의 수호자 세트 (힘, 체력, 방어)
+   398     {
+   399         id: 'guardian_of_light',
+   400         name: '빛의 수호자 세트',
+   401         theme: '적의 공격을 견뎌내고 아군을 보호하는 성스러운 기사를 위한 세트',
+   402         pieces: [
+   403             { name: '수호자의 투구', baseName: '강철 투구', slot: 'hat', stats: { strength: 5, vitality: 5 }, affixes: [{ type: 'physicalDefense', value: 5 }] },
+   404             { name: '수호자의 판금 갑옷', baseName: '판금 갑옷', slot: 'chest', stats: { strength: 8, vitality: 8 }, affixes: [{ type: 'physicalDefense', value: 10 }] },
+   405             { name: '수호자의 각반', baseName: '강철 각반', slot: 'legs', stats: { strength: 6, vitality: 6 }, affixes: [{ type: 'physicalDefense', value: 7 }] },
+   406             { name: '수호자의 방패', baseName: '강철 방패', slot: 'subWeapon', stats: { strength: 7, vitality: 7 }, affixes: [{ type: 'physicalDefense', value: 12 }] },
+   407         ],
+   408         bonuses: [
+   409             { count: 2, effect: { stats: { strength: 5, vitality: 5 } } },
+   410             { count: 4, effect: { stats: { physicalDefense: 10, magicalDefense: 10 }, special: { type: 'damage_reduction_aura', magnitude: 0.05 } } },
+   411         ]
+   412     },
+   413     // 3. 비전 마법사 세트 (지능, 마법 공격력, 마나)
+   414     {
+   415         id: 'arcane_weaver',
+   416         name: '비전 마법사 세트',
+   417         theme: '강력한 마법으로 적을 불태우는 대마법사를 위한 세트',
+   418         pieces: [
+   419             { name: '비전 후드', baseName: '천 두건', slot: 'hat', stats: { intelligence: 5, mentality: 5 }, affixes: [{ type: 'magicalAttack', value: 5 }] },
+   420             { name: '비전 로브', baseName: '천 로브', slot: 'chest', stats: { intelligence: 7, mentality: 7 }, affixes: [{ type: 'magicalAttack', value: 10 }] },
+   421             { name: '비전 완드', baseName: '낡은 완드', slot: 'mainWeapon', stats: { intelligence: 8, mentality: 8 }, affixes: [{ type: 'magicalAttack', value: 12 }], weaponType: 'magical' },
+   422             { name: '비전 보주', baseName: '마력의 수정', slot: 'subWeapon', stats: { intelligence: 6, mentality: 6 }, affixes: [{ type: 'magicalAttack', value: 8 }] },
+   423         ],
+   424         bonuses: [
+   425             { count: 2, effect: { stats: { intelligence: 5, mentality: 5 } } },
+   426             { count: 4, effect: { stats: { magicalAttack: 15 }, special: { type: 'mana_regen_on_spell', value: 5 } } },
+   427         ]
+   428     },
+   429     // 4. 자연의 분노 세트 (원거리, 민첩, 원소 피해)
+   430     {
+   431         id: 'fury_of_nature',
+   432         name: '자연의 분노 세트',
+   433         theme: '자연의 힘을 빌어 원거리에서 적을 꿰뚫는 사냥꾼을 위한 세트',
+   434         pieces: [
+   435             { name: '자연의 활', baseName: '짧은 활', slot: 'mainWeapon', stats: { agility: 8 }, affixes: [{ type: 'rangedAttack', value: 10 }], weaponType: 'ranged' },
+   436             { name: '자연의 가죽 갑옷', baseName: '가죽 조끼', slot: 'chest', stats: { agility: 7 }, affixes: [{ type: 'evasion', value: 0.02 }] },
+   437             { name: '자연의 장갑', baseName: '가죽 팔목 보호대', slot: 'wrist', stats: { agility: 5 }, affixes: [{ type: 'critChance', value: 0.02 }] },
+   438         ],
+   439         bonuses: [
+   440             { count: 2, effect: { stats: { agility: 7 }, affixes: [{ type: 'elementalDamage', elementType: 'poison', min: 3, max: 5 }] } },
+   441             { count: 3, effect: { stats: { rangedAttack: 10 }, special: { type: 'chance_to_root', chance: 0.1 } } },
+   442         ]
+   443     },
+   444     // 5. 황금의 상인 세트 (골드 획득, 행운)
+   445     {
+   446         id: 'golden_merchant',
+   447         name: '황금의 상인 세트',
+   448         theme: '재물에 대한 욕망이 가득한 상인을 위한 세트',
+   449         pieces: [
+   450             { name: '상인의 모자', baseName: '가죽 모자', slot: 'hat', stats: { luck: 5 }, affixes: [{ type: 'goldFind', value: 0.05 }] },
+   451             { name: '상인의 조끼', baseName: '가죽 조끼', slot: 'chest', stats: { luck: 7 }, affixes: [{ type: 'magicFind', value: 0.03 }] },
+   452             { name: '상인의 반지', baseName: '낡은 반지', slot: 'ring', stats: { luck: 3 }, affixes: [{ type: 'goldFind', value: 0.02 }] },
+   453         ],
+   454         bonuses: [
+   455             { count: 2, effect: { stats: { luck: 5 }, affixes: [{ type: 'goldFind', value: 0.10 }] } },
+   456             { count: 3, effect: { affixes: [{ type: 'magicFind', value: 0.05 }], special: { type: 'extra_merchant_stock' } } },
+   457         ]
+   458     },
+   459     // 6. 뱀파이어 군주 세트 (생명력 흡수, 체력, 어둠 피해)
+   460     {
+   461         id: 'vampire_lord',
+   462         name: '뱀파이어 군주 세트',
+   463         theme: '적의 생명력을 흡수하여 자신의 것으로 만드는 피의 지배자를 위한 세트',
+   464         pieces: [
+   465             { name: '군주의 망토', baseName: '천 견갑', slot: 'shoulder', stats: { vitality: 5 }, affixes: [{ type: 'lifesteal', value: 0.01 }] },
+   466             { name: '군주의 갑옷', baseName: '판금 갑옷', slot: 'chest', stats: { vitality: 10 }, affixes: [{ type: 'maxHp', value: 50 }] },
+   467             { name: '피의 반지', baseName: '낡은 반지', slot: 'ring', stats: { vitality: 3 }, affixes: [{ type: 'lifesteal', value: 0.02 }] },
+   468             { name: '군주의 대검', baseName: '대검', slot: 'mainWeapon', stats: { strength: 10, vitality: 5 }, affixes: [{ type: 'lifesteal', value: 0.03 }], weaponType: 'physical' },
+   469         ],
+   470         bonuses: [
+   471             { count: 2, effect: { stats: { vitality: 5 }, affixes: [{ type: 'lifesteal', value: 0.03 }] } },
+   472             { count: 4, effect: { stats: { maxHp: 50 }, affixes: [{ type: 'elementalDamage', elementType: 'dark', min: 10, max: 20 }] } }, // Dark damage would be a new elemental type
+   473         ]
+   474     },
+   475     // 7. 파괴의 화염 세트 (힘, 화염 피해)
+   476     {
+   477         id: 'flame_of_destruction',
+   478         name: '파괴의 화염 세트',
+   479         theme: '모든 것을 불태우는 강력한 화염 마법과 물리 공격을 위한 세트',
+   480         pieces: [
+   481             { name: '화염의 투구', baseName: '강철 투구', slot: 'hat', stats: { strength: 5 }, affixes: [{ type: 'physicalAttack', value: 5 }] },
+   482             { name: '화염의 대검', baseName: '대검', slot: 'mainWeapon', stats: { strength: 7 }, affixes: [{ type: 'elementalDamage', elementType: 'fire', min: 5, max: 10 }], weaponType: 'physical' },
+   483             { name: '화염의 각반', baseName: '강철 각반', slot: 'legs', stats: { strength: 5 }, affixes: [{ type: 'physicalDefense', value: 5 }] },
+   484         ],
+   485         bonuses: [
+   486             { count: 2, effect: { stats: { strength: 7 }, affixes: [{ type: 'elementalDamage', elementType: 'fire', min: 5, max: 10 }] } },
+   487             { count: 3, effect: { affixes: [{ type: 'statusEffectBurn', chance: 0.15, magnitude: 2, duration: 3 }] } }, // New status effect
+   488         ]
+   489     },
+   490     // 8. 얼어붙은 심장 세트 (지능, 냉기 피해, 방어)
+   491     {
+   492         id: 'frozen_heart',
+   493         name: '얼어붙은 심장 세트',
+   494         theme: '냉기 마법으로 적을 얼리고 움직임을 봉쇄하는 얼음 마법사를 위한 세트',
+   495         pieces: [
+   496             { name: '서리의 로브', baseName: '천 로브', slot: 'chest', stats: { intelligence: 5 }, affixes: [{ type: 'magicalAttack', value: 5 }] },
+   497             { name: '서리의 완드', baseName: '낡은 완드', slot: 'mainWeapon', stats: { intelligence: 7 }, affixes: [{ type: 'elementalDamage', elementType: 'ice', min: 5, max: 10 }], weaponType: 'magical' },
+   498             { name: '서리의 반지', baseName: '낡은 반지', slot: 'ring', stats: { intelligence: 3 }, affixes: [{ type: 'magicalDefense', value: 3 }] },
+   499         ],
+   500         bonuses: [
+   501             { count: 2, effect: { stats: { intelligence: 7 }, affixes: [{ type: 'elementalDamage', elementType: 'ice', min: 5, max: 10 }] } },
+   502             { count: 3, effect: { affixes: [{ type: 'statusEffectChill', chance: 0.15, magnitude: 0.5, duration: 2 }] } }, // New status effect
+   503         ]
+   504     },
+   505     // 9. 폭풍의 인도자 세트 (민첩, 번개 피해, 속도)
+   506     {
+   507         id: 'storm_caller',
+   508         name: '폭풍의 인도자 세트',
+   509         theme: '번개와 폭풍의 힘을 빌어 빠르게 적을 섬멸하는 세트',
+   510         pieces: [
+   511             { name: '폭풍의 활', baseName: '짧은 활', slot: 'mainWeapon', stats: { agility: 8 }, affixes: [{ type: 'rangedAttack', value: 10 }], weaponType: 'ranged' },
+   512             { name: '폭풍의 가죽 갑옷', baseName: '가죽 조끼', slot: 'chest', stats: { agility: 7 }, affixes: [{ type: 'speed', value: 5 }] },
+   513             { name: '폭풍의 장화', baseName: '가죽 장화', slot: 'feet', stats: { agility: 5 }, affixes: [{ type: 'evasion', value: 0.02 }] },
+   514         ],
+   515         bonuses: [
+   516             { count: 2, effect: { stats: { agility: 7 }, affixes: [{ type: 'elementalDamage', elementType: 'lightning', min: 5, max: 10 }] } },
+   517             { count: 3, effect: { stats: { speed: 10 }, special: { type: 'chain_lightning_proc', chance: 0.1 } } }, // Special effect
+   518         ]
+   519     },
+   520     // 10. 고대 드루이드 세트 (체력, 마나, 독 피해)
+   521     {
+   522         id: 'ancient_druid',
+   523         name: '고대 드루이드 세트',
+   524         theme: '자연의 지혜와 독의 힘으로 적을 서서히 약화시키는 드루이드를 위한 세트',
+   525         pieces: [
+   526             { name: '드루이드의 모자', baseName: '천 두건', slot: 'hat', stats: { vitality: 5, mentality: 5 }, affixes: [{ type: 'maxHp', value: 20 }] },
+   527             { name: '드루이드의 로브', baseName: '천 로브', slot: 'chest', stats: { vitality: 7, mentality: 7 }, affixes: [{ type: 'maxMp', value: 30 }] },
+   528             { name: '드루이드의 지팡이', baseName: '나무 지팡이', slot: 'mainWeapon', stats: { vitality: 8, mentality: 8 }, affixes: [{ type: 'elementalDamage', elementType: 'poison', min: 7, max: 12 }], weaponType:
+       'magical' },
+   529         ],
+   530         bonuses: [
+   531             { count: 2, effect: { stats: { vitality: 5, mentality: 5 } } },
+   532             { count: 3, effect: { affixes: [{ type: 'elementalDamage', elementType: 'poison', min: 7, max: 12 }], special: { type: 'area_poison_cloud', chance: 0.05 } } }, // Special effect
+   533         ]
+   534     },
+   535     // 11. 불굴의 전사 세트 (힘, 물리 방어, HP)
+   536     {
+   537         id: 'unyielding_warrior',
+   538         name: '불굴의 전사 세트',
+   539         theme: '어떤 역경에도 굴하지 않는 강인한 전사를 위한 세트',
+   540         pieces: [
+   541             { name: '전사의 판금 투구', baseName: '강철 투구', slot: 'hat', stats: { strength: 8 }, affixes: [{ type: 'physicalDefense', value: 7 }] },
+   542             { name: '전사의 판금 갑옷', baseName: '판금 갑옷', slot: 'chest', stats: { strength: 10 }, affixes: [{ type: 'physicalDefense', value: 12 }] },
+   543             { name: '전사의 대검', baseName: '대검', slot: 'mainWeapon', stats: { strength: 12 }, affixes: [{ type: 'physicalAttack', value: 15 }], weaponType: 'physical' },
+   544             { name: '전사의 방패', baseName: '강철 방패', slot: 'subWeapon', stats: { strength: 8 }, affixes: [{ type: 'physicalDefense', value: 10 }] },
+   545         ],
+   546         bonuses: [
+   547             { count: 2, effect: { stats: { strength: 10, physicalDefense: 5 } } },
+   548             { count: 4, effect: { stats: { maxHp: 100 }, special: { type: 'physical_block_chance', value: 0.1 } } },
+   549         ]
+   550     },
+   551     // 12. 그림자 사냥꾼 세트 (민첩, 원거리 공격력, 회피)
+   552     {
+   553         id: 'shadow_hunter',
+   554         name: '그림자 사냥꾼 세트',
+   555         theme: '어둠 속에 숨어 원거리에서 적을 사냥하는 능숙한 사냥꾼을 위한 세트',
+   556         pieces: [
+   557             { name: '사냥꾼의 두건', baseName: '가죽 모자', slot: 'hat', stats: { agility: 5 }, affixes: [{ type: 'rangedAttack', value: 5 }] },
+   558             { name: '사냥꾼의 가죽 조끼', baseName: '가죽 조끼', slot: 'chest', stats: { agility: 7 }, affixes: [{ type: 'evasion', value: 0.02 }] },
+   559             { name: '그림자 활', baseName: '사냥꾼의 활', slot: 'mainWeapon', stats: { agility: 10 }, affixes: [{ type: 'rangedAttack', value: 12 }], weaponType: 'ranged' },
+   560             { name: '사냥꾼의 장화', baseName: '가죽 장화', slot: 'feet', stats: { agility: 6 }, affixes: [{ type: 'speed', value: 4 }] },
+   561         ],
+   562         bonuses: [
+   563             { count: 2, effect: { stats: { agility: 10, rangedAttack: 5 } } },
+   564             { count: 4, effect: { affixes: [{ type: 'evasion', value: 0.05 }], special: { type: 'piercing_shot', value: 0.15 } } }, // Ignore X% physical defense
+   565         ]
+   566     }
+   567 ];
+
+*해당 새로추가될 고유아이템 정보와 세트아이템 정보를 constants.js에 추가할 수 있도록 한다 그리고 해당코드의 추가는 아래의 주의사항을 읽고 진행할 수 있도록 한다
+
+* 고유 아이템의 신화에서 영감을 받은 이름을 위한 UNIQUE_ITEM_NAMES_BY_RARITY_AND_SLOT가 추가할것
+       * EQUIPMENT_SETS가 12개의 뚜렷한 세트 테마, 조각, 보너스(스탯, 특수 효과)로 정의할것
+       * ELEMENTAL_TYPES에 'dark'가 추가할것
+   * `gameLogic.js`:
+       * 새 상수를 포함하도록 가져오기(import)가 업데이트할것
+       * 고유 이름 조회를 위한 getItemCategory 헬퍼 함수를 도입할것
+       * `generateRandomItem`: 이제 희귀도를 기반으로 고유 아이템(확률 포함) 및 세트 아이템(고유하지 않은 경우 확률 포함)을 생성하며, 새 상수를 활용할것
+       * `recalculateDerivedStats`: 이제 장착된 세트 조각을 올바르게 식별하고, 개수를 세며, 세트 보너스(스탯, 접두사)를 적용합니다. 특수 세트 효과는 derived.setBonuses에 저장할것
+   * `ui.js`:
+       * EQUIPMENT_SETS를 포함하도록 가져오기가 업데이트할것
+       * `renderSidePanelEquipment`: 이제 장착된 아이템이 세트의 일부이거나 고유한 경우 " (세트)" 또는 " (고유)"를 표시합니다. 또한, 사이드 패널의 장비 목록 아래에 활성 세트 보너스(예: "2세트: +5 힘") 요약을 표시할것
+       * `createTooltipContent`: 이제 "고유 아이템" 태그를 표시하고, 0이 아닌 스탯만 표시하며, 세트 아이템 위에 마우스를 올리면 세트 보너스(활성 및 비활성, 적절한 색상으로)에 대한 자세한 정보를 제공할것
+
+       *인벤토리에서 아이템 위에 마우스를 올려 UI창이 뜰때 화면밖으로 나가지 않도록 상세정보가 무조건 화면 밖을 벗어나지 않도록 CSS를 수정해줄것 
+
+       *세트아이템과 고유아이템은 접두사가 붙지 않지만 특수한 옵션들이 기존 아이템들과 같이 자동 생성되어야하고 또한 고유아이템 세트아이템만의 특수옵션들도 보유하도록 수정하고 추가할 것
+       *세트아이템의 등급은 에픽이상에서만 존재할 수 있고 이상의 등급부터는 상관없이 모든 세트부위를 등급과 관계없이 장착할 경우 세트옵션이 적용되도록한다
+       *고유아이템의 등급은 신화 이상에서만 존재할 수 있다
+	*해당 아이템들의 성능은 기존의 등급 아이템보다도 더 성능이 좋게 만든다
+	*세트아이템을 장비했을때 상세보기 UI에서 세트가 적용되고 있다는 것을 눈에띄는 이펙트를 줄 것(노란색 주황색 계열로 살짝 빛나도록)
+ 	*인벤토리의 현 사이즈는 8*8로 이루어져 있으나 6*6으로 수정하고 인벤토리가 가득 찰 것을 대비하여 소지품의 페이지를 만들어 이전버튼과 다음버튼을 통해 소지품의 페이지를 오고갈수 있도록 수정할 것
+
+
+
+***최중요사항 - 이 아이템관련 코드를 추가할때 기존의 다른 코드들을 꼭 필요하지 않은이상 수정하지 않고 추가 보완하는 방향으로 진행할 것
+또한 update_log 폴더에 그날 그날 명령을 받아 수행된 수정사항들을 txt파일로 꼭 저장해둘 것
+	
+       
+       

@@ -1,0 +1,42 @@
+# 2026-01-20 Item Updates
+
+## Changes Made:
+1.  **`src/main/resources/static/js/constants.js`**:
+    *   Added 'dark' to `ELEMENTAL_TYPES`.
+    *   Added `UNIQUE_ITEM_NAMES_BY_RARITY_AND_SLOT` containing mythical unique item definitions (Legendary, Mystic, Legacy rarities).
+    *   Added `EQUIPMENT_SETS` containing 12 distinct set themes with pieces, stats, affixes, and special bonuses.
+    *   Changed `INVENTORY_SIZE` from 64 to 36 for a 6x6 inventory grid.
+
+2.  **`src/main/resources/static/js/gameLogic.js`**:
+    *   Updated imports to include `UNIQUE_ITEM_NAMES_BY_RARITY_AND_SLOT` and `EQUIPMENT_SETS`.
+    *   Modified `generateRandomItem` to support generation of unique and set items based on rarity and chance, with predefined stats/affixes and no prefixes.
+    *   Modified `recalculateDerivedStats` to include set bonus calculations (stats, affixes, special effects) and correctly initialize 'dark' elemental damage and new affix types.
+    *   Fixed `Uncaught SyntaxError: missing ) after argument list` at `gameLogic.js:267:68` by adding a missing parenthesis.
+
+3.  **`src/main/resources/static/js/ui.js`**:
+    *   Updated imports to include `EQUIPMENT_SETS` and pagination DOM elements.
+    *   Modified `renderSidePanelEquipment` to display "(고유)" or "(세트)" next to equipped unique/set items and show active set bonuses summary.
+    *   Modified `createTooltipContent` to add a "고유 아이템" tag, display only non-zero stats, and provide detailed active/inactive set bonus information.
+    *   Modified `showItemTooltip` and `showMerchantItemTooltip` to calculate and pass equipped set counts to `createTooltipContent` and dynamically adjust tooltip positioning to prevent it from going off-screen.
+    *   Added `updatePaginationControls`, `goToPage`, `nextPage`, `prevPage` functions.
+    *   Modified `renderBagGrid` to display a paginated slice of inventory items and update pagination controls.
+    *   Added event listeners for pagination buttons in `initUI`.
+
+4.  **`src/main/resources/static/style.css`**:
+    *   Added CSS rules for `.item-unique-tag`, `.set-name`, `.set-theme`, `.set-pieces-title`, `.set-piece-item`, `.set-bonuses-title`, `.set-bonus-detail` for improved tooltip display.
+    *   Added `@keyframes glowing-border` and `.eq-slot.equipped.set-item-glow` for visual effect on equipped set items.
+    *   Updated `.bag-grid` to `grid-template-columns: repeat(6, 1fr);` for 6x6 inventory.
+    *   Updated `.player-sell-grid` to `grid-template-columns: repeat(6, 1fr);` for a 6x6 layout in the merchant's player sell inventory.
+
+5.  **`src/main/resources/static/index.html`**:
+    *   Added pagination controls (`prevPageBtn`, `pageNumberDisplay`, `nextPageBtn`) to the inventory panel.
+
+6.  **`src/main/resources/static/js/domElements.js`**:
+    *   Added exports for `prevPageBtn`, `pageNumberDisplay`, and `nextPageBtn`.
+
+## Next Steps:
+*   **CSS Modifications (Remaining)**:
+    *   Further refine CSS for tooltip positioning if needed, especially for responsive design (although dynamic JS positioning mitigates this).
+*   **Inventory System Modifications (Remaining)**:
+    *   Ensure the `renderPlayerSellInventory` also uses pagination if needed. (This was not explicitly requested but might be implied for consistency).
+*   **Testing**: Thoroughly test all new item generation, equipping, set bonuses, and inventory pagination features.
