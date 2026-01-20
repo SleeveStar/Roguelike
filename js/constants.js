@@ -80,7 +80,7 @@ export const MONSTER_TYPES = [
 ];
 
 export const RARITY_CONFIG = {
-    common:     { name: '일반',     color: '#ffffff', probability: 0.1,  budget: 5,  level_multiplier: 1.0, affixSlots: { min: 0, max: 1 },
+    common:     { name: '일반',     color: '#ffffff', probability: 45,  budget: 5,  level_multiplier: 1.0, affixSlots: { min: 0, max: 1 },
                     affixValues: {
                         physicalAttack: { min: 1, max: 2 }
                     },
@@ -146,7 +146,7 @@ export const RARITY_CONFIG = {
                     },
                     possibleAffixes: ['physicalAttack', 'critChance', 'critDamage', 'lifesteal', 'statusEffectBleed', 'elementalDamage']
                 },
-    legacy:     { name: '유산',     color: '#00FFFF', probability: 40, budget: 600, level_multiplier: 4.8, affixSlots: { min: 5, max: 6 },
+    legacy:     { name: '유산',     color: '#00FFFF', probability: 0.1, budget: 600, level_multiplier: 4.8, affixSlots: { min: 5, max: 6 },
                     affixValues: {
                         physicalAttack: { min: 60, max: 96 },
                         critChance: { min: 0.18, max: 0.25 },

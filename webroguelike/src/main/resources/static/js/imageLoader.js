@@ -66,6 +66,15 @@ export function preloadGameAssets() {
             tileImageCache[tileName] = img;
         });
 
+        // 호스팅버전
+        // tileTypes.forEach(tileName => {
+        //     const img = new Image();
+        //     img.onload = imageLoadHandler;
+        //     img.onerror = imageErrorHandler;
+        //     img.src = new URL(`../img/${tileName}.png`, import.meta.url).href;
+        //     tileImageCache[tileName] = img;
+        // });
+
         // Load Monster Images
         MONSTER_TYPES.forEach(monsterInfo => {
             const img = new Image();
@@ -79,5 +88,18 @@ export function preloadGameAssets() {
             img.src = path;
             monsterImageCache[monsterName] = img;
         });
+
+        // 호스팅버전
+        // MONSTER_TYPES.forEach(monsterInfo => {
+        //     const img = new Image();
+        //     const monsterName = monsterInfo.name;
+        //     img.onload = () => {
+        //         console.log(`${monsterName}.png loaded successfully.`);
+        //         imageLoadHandler();
+        //     };
+        //     img.onerror = imageErrorHandler;
+        //     img.src = new URL(`../img/${monsterName}.png`, import.meta.url).href;
+        //     monsterImageCache[monsterName] = img;
+        // });
     });
 }
