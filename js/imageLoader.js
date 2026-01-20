@@ -59,7 +59,7 @@ export function preloadGameAssets() {
         // Load Tile Images
         tileTypes.forEach(tileName => {
             const img = new Image();
-            const path = `/img/${tileName}.png`;
+            const path = `./img/${tileName}.png`;
             img.onload = imageLoadHandler;
             img.onerror = imageErrorHandler;
             img.src = path;
@@ -70,7 +70,7 @@ export function preloadGameAssets() {
         MONSTER_TYPES.forEach(monsterInfo => {
             const img = new Image();
             const monsterName = monsterInfo.name;
-            const path = `/img/${monsterName}.png`;
+            const path = `./img/${monsterName}.png`;
             img.onload = () => {
                 console.log(`${monsterName}.png loaded successfully.`);
                 imageLoadHandler();
