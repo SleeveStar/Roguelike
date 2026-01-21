@@ -1,9 +1,9 @@
 // ui.js
 import { gameState } from './gameState.js';
-import { 
-    ctx, inventoryOverlayElement, itemTooltipElement, 
-    merchantOverlayElement, merchantStockGridElement, playerSellGridElement, 
-    merchantPlayerGoldAmountElement, gameCanvas, allocateButtons, eqSlotElements, 
+import {
+    ctx, inventoryOverlayElement, itemTooltipElement,
+    merchantOverlayElement, merchantStockGridElement, playerSellGridElement,
+    merchantPlayerGoldAmountElement, gameCanvas, allocateButtons, eqSlotElements,
     levelUpModal, sidePanelEquipment, infoLogElement,
     // New Battle UI elements
     battleLog, battleMonsterName, battleMonsterLevel, battleMonsterHpBar,
@@ -68,7 +68,7 @@ export function renderSidePanelEquipment() {
         itemDiv.className = 'equipped-item-display';
 
         const slotName = slotKorean[slot] || slot;
-        
+
         if (item) {
             let itemName = item.name;
             if (item.isUnique) {
@@ -109,7 +109,7 @@ export function renderSidePanelEquipment() {
 export function logCombatMessage(message) {
     const p = document.createElement('p');
     p.innerHTML = message;
-    
+
     // Append to both logs
     infoLogElement.appendChild(p.cloneNode(true));
     // Ensure scroll to bottom after DOM update
@@ -136,48 +136,64 @@ export function drawMap() {
         return;
     }
 
-    const defaultFallbackTileName = activeTileSet.walkableTileNames[0] || Object.values(activeTileSet.TILE_TYPES)[0];
+    // fallback tile: drawMap에서 "바탕(배경)"처럼 쓰는 타일 이름
+    const defaultFallbackTileName =
+        activeTileSet.walkableTileNames?.[0] ||
+        Object.values(activeTileSet.TILE_TYPES)?.[0] ||
+        Object.keys(activeTileSet.TILE_PROPERTIES)?.[0];
+
+    // 경고를 매 타일마다 찍으면 로그 폭발하니, 한 프레임에 요약만
+    let missingNameCount = 0;
+    let missingPropsCount = 0;
 
     for (let y = 0; y < gameState.mapGrid.length; y++) {
         for (let x = 0; x < gameState.mapGrid[y].length; x++) {
             const tile = gameState.mapGrid[y][x];
-            const tileName = tile ? tile.name : defaultFallbackTileName; // Fallback to a default walkable tile
+            const tileName = tile?.name;
 
-            // Get properties for the specific tile
-            const tileProps = activeTileSet.TILE_PROPERTIES[tileName];
-            
-            // If the tile is not defined or is meant to be a background tile, skip drawing.
-            // This allows the clearCanvas color to show through.
-            if (!tileProps || tileName === defaultFallbackTileName) { // Skip drawing if it's the generic background tile
-                 // Check if the tile exists in TILE_PROPERTIES, if not it's invalid
-                 if (!tileProps) {
-                    console.warn(`Tile ${tileName} not found in TILE_PROPERTIES for ${gameState.currentBiome} biome.`);
-                 }
-                continue; 
+            // tileName이 비어있으면 "깨진 맵" 신호. 배경으로 두고 넘어감.
+            if (!tileName) {
+                missingNameCount++;
+                continue;
             }
 
-            // Only attempt to draw if there's an actual tile name
-            if (tileName) { 
-                const image = tileImageCache[tileName];
-                const posX = x * TILE_SIZE;
-                const posY = y * TILE_SIZE;
+            const tileProps = activeTileSet.TILE_PROPERTIES[tileName];
+            if (!tileProps) {
+                missingPropsCount++;
+                continue;
+            }
 
-                if (image && image.naturalHeight !== 0) {
-                    // console.log(`Drawing tile ${tileName}. Image: `, image, ` Natural Height: ${image.naturalHeight}`);
-                    // Apply transparency if specified in tile properties
-                    if (tileProps.drawTransparency) {
-                        ctx.globalAlpha = tileProps.drawTransparency;
-                    }
-                    ctx.drawImage(image, posX, posY, TILE_SIZE, TILE_SIZE);
-                    // Reset globalAlpha after drawing the transparent image
-                    if (tileProps.drawTransparency) {
-                        ctx.globalAlpha = 1.0;
-                    }
-                } else {
-                    console.warn(`Fallback for tile ${tileName}. Image failed to load or is invalid. Biome: ${gameState.currentBiome}`);
+            // 배경 타일은 clearCanvas로 처리하고 싶다면 스킵
+            // (원래 코드의 의도 유지)
+            if (defaultFallbackTileName && tileName === defaultFallbackTileName) {
+                continue;
+            }
+
+            const image = tileImageCache[tileName];
+            const posX = x * TILE_SIZE;
+            const posY = y * TILE_SIZE;
+
+            if (image && image.naturalHeight !== 0) {
+                if (tileProps.drawTransparency) {
+                    ctx.globalAlpha = tileProps.drawTransparency;
                 }
+                ctx.drawImage(image, posX, posY, TILE_SIZE, TILE_SIZE);
+                if (tileProps.drawTransparency) {
+                    ctx.globalAlpha = 1.0;
+                }
+            } else {
+                // 이미지 로딩 실패는 일단 지나가되, 필요하면 디버그용으로만 남김
+                // console.warn(`Fallback for tile ${tileName}. Image failed to load or is invalid. Biome: ${gameState.currentBiome}`);
             }
         }
+    }
+
+    // 프레임 단위 요약 로그 (문제 있을 때만)
+    if (missingNameCount > 0) {
+        console.warn(`Tile undefined (missing tile.name) detected: ${missingNameCount} tiles in biome ${gameState.currentBiome}.`);
+    }
+    if (missingPropsCount > 0) {
+        console.warn(`Tile not found in TILE_PROPERTIES: ${missingPropsCount} tiles in biome ${gameState.currentBiome}.`);
     }
 }
 
@@ -214,8 +230,6 @@ export function drawPlayer() {
         // 깜빡임(알파) 적용
         ctx.globalAlpha = gameState.playerEffectAlpha;
 
-        // 선택: 더 “빛 번짐” 느낌을 원하면 살짝 블러도 추가 가능
-        // (그라데이션만으로도 충분히 부드러움)
         ctx.shadowBlur = 20;
         ctx.shadowColor = "rgba(0, 255, 255, 0.8)";
 
@@ -237,8 +251,6 @@ export function drawPlayer() {
         ctx.fillRect(gameState.player.x, gameState.player.y, TILE_SIZE, TILE_SIZE);
     }
 }
-
-
 
 export function drawHealingBlock(block) {
     if (healingBlockImage.complete && healingBlockImage.naturalHeight !== 0) {
@@ -271,19 +283,19 @@ export function drawGame() {
     gameState.healingBlocks.forEach(drawHealingBlock);
     if (gameState.wanderingMerchant) {
         if (goldIconImage.complete && goldIconImage.naturalHeight !== 0) {
-            ctx.drawImage(goldIconImage, 
-                          gameState.wanderingMerchant.x, 
-                          gameState.wanderingMerchant.y, 
-                          TILE_SIZE, 
-                          TILE_SIZE);
+            ctx.drawImage(goldIconImage,
+                gameState.wanderingMerchant.x,
+                gameState.wanderingMerchant.y,
+                TILE_SIZE,
+                TILE_SIZE);
         } else {
             ctx.fillStyle = 'brown'; // Fallback: MERCHANT_COLOR
             ctx.fillRect(gameState.wanderingMerchant.x, gameState.wanderingMerchant.y, TILE_SIZE, TILE_SIZE);
             ctx.fillStyle = 'gold';
             ctx.beginPath();
-            ctx.arc(gameState.wanderingMerchant.x + TILE_SIZE / 2, 
-                    gameState.wanderingMerchant.y + TILE_SIZE / 2, 
-                    TILE_SIZE / 3, 0, Math.PI * 2);
+            ctx.arc(gameState.wanderingMerchant.x + TILE_SIZE / 2,
+                gameState.wanderingMerchant.y + TILE_SIZE / 2,
+                TILE_SIZE / 3, 0, Math.PI * 2);
             ctx.fill();
         }
     }
@@ -305,14 +317,14 @@ export function drawGame() {
 
         gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.9)`);
         gradient.addColorStop(1, monsterGradientColor); // Use biome base color for monster gradient
-        
+
         ctx.fillStyle = gradient;
         ctx.fillRect(monster.x, monster.y, TILE_SIZE, TILE_SIZE);
 
         if (monsterImg && monsterImg.complete && monsterImg.naturalHeight !== 0) {
             ctx.drawImage(monsterImg, monster.x, monster.y, TILE_SIZE, TILE_SIZE);
         } else {
-            console.warn(`Fallback for monster ${monster.name}. Image failed to load or is invalid.`);
+            // console.warn(`Fallback for monster ${monster.name}. Image failed to load or is invalid.`);
             ctx.fillStyle = 'deeppink';
             ctx.fillRect(monster.x, monster.y, TILE_SIZE, TILE_SIZE);
             ctx.fillStyle = 'white';
@@ -327,7 +339,7 @@ export function updateStatusDisplay() {
 
     if (!derived || Object.keys(derived).length === 0) {
         console.warn("Derived stats not calculated. Recalculating now.");
-        return; 
+        return;
     }
 
     // Calculate bonus stats from equipment
@@ -390,7 +402,7 @@ export function updateStatusDisplay() {
     if (bonusPointsSection) {
         bonusPointsSection.classList.toggle('has-bonus-points', base.availableStatPoints > 0);
     }
-    
+
     document.getElementById('xpBar').style.width = `${(base.experience / base.experienceToNextLevel) * 100}%`;
     document.getElementById('currentXP').textContent = Math.floor(base.experience);
     document.getElementById('maxXP').textContent = base.experienceToNextLevel;
@@ -414,7 +426,7 @@ export function initPokemonBattleUI(monster) {
         battleMonsterSprite.src = monsterImg.src;
     }
     updatePokemonBattleMonsterUI();
-    
+
     // Player
     battlePlayerName.textContent = "Player"; // Or a character name if you have one
     battlePlayerLevel.textContent = base.level;
@@ -449,7 +461,6 @@ export function updatePokemonBattleMonsterUI() {
     }
 }
 
-
 // --- Legacy / Other UI Functions ---
 
 export function toggleInventory(shouldOpen) {
@@ -466,31 +477,34 @@ function getWeaponTypeKorean(weaponType) {
     }
 }
 
-export function createTooltipContent(item, title, equippedSetCounts = {}) { // Add equippedSetCounts parameter
+export function createTooltipContent(item, title, equippedSetCounts = {}) {
     if (!item) return `<div class="tooltip-section"><h4>${title}</h4><div>(Empty)</div></div>`;
     let content = `<div class="tooltip-section">`;
-    
+
+    // SetDefinition은 아래에서 description 판단에도 쓰여서 여기서 미리 선언
+    let setDefinition = null;
+
     // New: Unique Item Tag
     if (item.isUnique) {
         content += `<div class="item-unique-tag" style="color: ${item.color || RARITY_CONFIG[item.rarity]?.color || '#FFD700'};">고유 아이템</div>`;
     }
-    
+
     // Display Prefix if exists and not unique/set
     if (item.prefix && !item.isUnique && !item.isSetItem) {
         content += `<div class="item-prefix">${item.prefix}</div>`;
     }
-    
-    // Display Rarity (등급) - if not unique or set, use item.rarity, otherwise item.rarity is already set
+
+    // Display Rarity (등급)
     const displayRarity = item.rarityName || RARITY_CONFIG[item.rarity]?.name;
     const displayColor = item.color || RARITY_CONFIG[item.rarity]?.color || '#fff';
     content += `<div class="item-rarity" style="color: ${displayColor};">등급: ${displayRarity}</div>`;
-    
+
     // Display Name
     content += `<h4 style="color: ${displayColor};">${item.name}</h4>`;
-    
+
     // Display item level
-    content += `<div class="item-level">아이템 레벨: ${item.level}</div>`; 
-    
+    content += `<div class="item-level">아이템 레벨: ${item.level}</div>`;
+
     // Add weapon type if applicable
     if (item.slot === 'mainWeapon' && item.weaponType) {
         content += `<div class="stat">공격 타입: ${getWeaponTypeKorean(item.weaponType)}</div>`;
@@ -502,67 +516,37 @@ export function createTooltipContent(item, title, equippedSetCounts = {}) { // A
             content += `<div class="stat">${stat}: ${item.stats[stat]}</div>`;
         }
     }
-    
+
     if (item.affixes && item.affixes.length > 0) {
         content += `<hr>`;
         item.affixes.forEach(affix => {
             const affixDefinition = AFFIX_TYPES[affix.type];
             if (affixDefinition) {
-                // Check if value is non-zero for affixes too
-                // let valueCheck = true; // Removed valueCheck logic
-                // if (affixDefinition.minMax) {
-                //     valueCheck = (affix.min !== 0 || affix.max !== 0);
-                // } else if (affix.value !== undefined) {
-                //     valueCheck = (affix.value !== 0);
-                // } else if (affix.chanceVal && affix.magnitude !== undefined) {
-                //     valueCheck = (affix.magnitude !== 0);
-                // }
-                
-                // if (valueCheck) { // Removed valueCheck logic
-                    if (affixDefinition.minMax) {
-                        content += `<div class="affix">${affixDefinition.format(affix.min, affix.max, affix.elementType)}</div>`;
-                    } else if (affixDefinition.chanceVal) {
-                        if (affixDefinition.type === 'statusEffect') {
-                            content += `<div class="affix">${affixDefinition.format(affix.chance, affix.magnitude, affix.duration)}</div>`;
-                        } else if (affixDefinition.type === 'proc') {
-                            content += `<div class="affix">${affixDefinition.format(affix.chance)}</div>`;
-                        }
-                    } else {
-                        content += `<div class="affix">${affixDefinition.format(affix.value, affix.elementType)}</div>`;
+                if (affixDefinition.minMax) {
+                    content += `<div class="affix">${affixDefinition.format(affix.min, affix.max, affix.elementType)}</div>`;
+                } else if (affixDefinition.chanceVal) {
+                    if (affixDefinition.type === 'statusEffect') {
+                        content += `<div class="affix">${affixDefinition.format(affix.chance, affix.magnitude, affix.duration)}</div>`;
+                    } else if (affixDefinition.type === 'proc') {
+                        content += `<div class="affix">${affixDefinition.format(affix.chance)}</div>`;
                     }
-                // } // Removed valueCheck logic
+                } else {
+                    content += `<div class="affix">${affixDefinition.format(affix.value, affix.elementType)}</div>`;
+                }
             }
         });
     }
 
-    // New: Display Special Effects for Unique Items
-    if (item.isUnique && item.specialEffects && item.specialEffects.length > 0) {
-        content += `<hr>`;
-        content += `<div class="special-effects-title">고유 효과:</div>`;
-        item.specialEffects.forEach(effect => {
-            const specialAffixDef = SPECIAL_AFFIX_TYPES[effect.type];
-            if (specialAffixDef) {
-                // Use the format function from SPECIAL_AFFIX_TYPES if available, otherwise fallback
-                let effectText = specialAffixDef.format ? specialAffixDef.format(effect) : `${effect.type}: ${effect.value || effect.magnitude || ''}`;
-                content += `<div class="special-effect-item">${effectText}</div>`;
-            } else {
-                content += `<div class="special-effect-item">${effect.type}</div>`;
-            }
-        });
-    }
-
-    // New: Detailed Set Bonus Information
+    // Detailed Set Bonus Information
     if (item.isSetItem && item.setId) {
-        const setDefinition = EQUIPMENT_SETS.find(set => set.id === item.setId);
+        setDefinition = EQUIPMENT_SETS.find(set => set.id === item.setId) || null;
         if (setDefinition) {
             content += `<hr>`;
             content += `<div class="set-name" style="color: ${setDefinition.color || '#fff'};">${setDefinition.name}</div>`;
             content += `<div class="set-theme">${setDefinition.theme}</div>`;
 
-            // List all pieces
             content += `<div class="set-pieces-title">세트 구성품:</div>`;
             setDefinition.pieces.forEach(piece => {
-                // Determine if a piece with the same name is equipped
                 let isPieceEquipped = false;
                 for (const slotKey in gameState.playerStats.equipment) {
                     const equippedPiece = gameState.playerStats.equipment[slotKey];
@@ -571,16 +555,15 @@ export function createTooltipContent(item, title, equippedSetCounts = {}) { // A
                         break;
                     }
                 }
-                const pieceColor = isPieceEquipped ? 'lime' : 'gray'; // Green for equipped, gray for not
+                const pieceColor = isPieceEquipped ? 'lime' : 'gray';
                 content += `<div class="set-piece-item" style="color: ${pieceColor};">- ${piece.name} (${piece.slot})</div>`;
             });
 
-            // List all bonuses (active/inactive)
             content += `<div class="set-bonuses-title">세트 보너스:</div>`;
             setDefinition.bonuses.forEach(bonus => {
                 const currentCount = equippedSetCounts[item.setId] || 0;
                 const isActive = currentCount >= bonus.count;
-                const bonusColor = isActive ? 'gold' : 'gray'; // Gold for active, gray for inactive
+                const bonusColor = isActive ? 'gold' : 'gray';
                 let bonusText = `${bonus.count}세트: `;
 
                 if (bonus.effect.stats) {
@@ -612,13 +595,13 @@ export function createTooltipContent(item, title, equippedSetCounts = {}) { // A
         }
     }
 
-    // Add general description if exists and not part of unique/set special handling
-    // Ensure that if a unique or set item already has its own description, we don't add the base item's description.
-    if (item.description && !item.isUnique && !(item.isSetItem && setDefinition.theme)) { // If item.isSetItem, theme acts as description
+    // Add general description if exists
+    // 세트 아이템은 setDefinition.theme를 설명처럼 쓰는 구조였던 의도를 유지
+    if (item.description && !item.isUnique && !(item.isSetItem && setDefinition && setDefinition.theme)) {
         content += `<hr>`;
         content += `<div>${item.description}</div>`;
     }
-    
+
     return content + `</div>`;
 }
 
@@ -629,14 +612,14 @@ export function showItemTooltip(event, item) {
         if (equippedItem === item && gameState.playerStats.equipment.ring2) {
             equippedItem = gameState.playerStats.equipment.ring2;
         } else if (equippedItem !== item && gameState.playerStats.equipment.ring2 === item) {
-             equippedItem = gameState.playerStats.equipment.ring1;
+            equippedItem = gameState.playerStats.equipment.ring1;
         } else if (equippedItem === item) {
             equippedItem = null;
         }
     } else {
         equippedItem = gameState.playerStats.equipment[item.slot];
     }
-    
+
     if (item.slot !== 'ring' && equippedItem === item) {
         equippedItem = null;
     } else if (item.slot === 'ring') {
@@ -655,47 +638,39 @@ export function showItemTooltip(event, item) {
     }
 
     itemTooltipElement.innerHTML = createTooltipContent(item, 'Hovered', equippedSetCounts) + createTooltipContent(equippedItem, 'Equipped', equippedSetCounts);
-    itemTooltipElement.classList.remove('hidden'); 
+    itemTooltipElement.classList.remove('hidden');
     itemTooltipElement.style.opacity = 1;
 
-    // Use setTimeout to ensure offsetWidth and offsetHeight are correctly calculated
     setTimeout(() => {
         const tooltipWidth = itemTooltipElement.offsetWidth;
         const tooltipHeight = itemTooltipElement.offsetHeight;
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
 
-        const padding = 20; // More generous padding
+        const padding = 20;
 
         let finalPosX;
         let finalPosY;
 
-        // --- Horizontal positioning ---
         let initialPosX = event.pageX + padding;
         if (initialPosX + tooltipWidth + padding > viewportWidth) {
-            // Flip to the left side of the cursor if it goes off right edge
             finalPosX = event.pageX - tooltipWidth - padding;
         } else {
             finalPosX = initialPosX;
         }
-        // Ensure it doesn't go off the left edge (after potential flip)
         finalPosX = Math.max(padding, finalPosX);
 
-
-        // --- Vertical positioning ---
         let initialPosY = event.pageY + padding;
         if (initialPosY + tooltipHeight + padding > viewportHeight) {
-            // Flip to appear above the cursor if it goes off bottom edge
             finalPosY = event.pageY - tooltipHeight - padding;
         } else {
             finalPosY = initialPosY;
         }
-        // Ensure it doesn't go off the top edge (after potential flip)
         finalPosY = Math.max(padding, finalPosY);
-        
+
         itemTooltipElement.style.left = finalPosX + 'px';
         itemTooltipElement.style.top = finalPosY + 'px';
-    }, 0); // Defer positioning
+    }, 0);
 }
 
 export function hideItemTooltip() {
@@ -709,21 +684,21 @@ export function renderBagGrid(containerElement, itemsArray, isSellContext = fals
     const endIndex = startIndex + itemsPerPage;
     const itemsToDisplay = itemsArray.slice(startIndex, endIndex);
 
-    for (let i = 0; i < itemsPerPage; i++) { // Loop itemsPerPage times for the current page
+    for (let i = 0; i < itemsPerPage; i++) {
         const item = itemsToDisplay[i];
         const itemElement = document.createElement('div');
         itemElement.className = 'bag-slot';
 
         if (item) {
-            itemElement.textContent = item.name; // Display only base name
-            itemElement.dataset.itemIndex = startIndex + i; // Store original index
+            itemElement.textContent = item.name;
+            itemElement.dataset.itemIndex = startIndex + i;
             if (item.rarity) {
                 itemElement.style.borderColor = RARITY_CONFIG[item.rarity].color;
             }
         }
         containerElement.appendChild(itemElement);
     }
-    updatePaginationControls(); // Update pagination buttons and display after rendering grid
+    updatePaginationControls();
 }
 
 export function renderEquipment() {
@@ -735,7 +710,6 @@ export function renderEquipment() {
             slotElement.classList.add('equipped');
             slotElement.style.borderColor = RARITY_CONFIG[item.rarity].color;
 
-            // Add glow effect for equipped set items
             if (item.isSetItem) {
                 slotElement.classList.add('set-item-glow');
             } else {
@@ -745,7 +719,7 @@ export function renderEquipment() {
         } else {
             slotElement.textContent = slotElement.dataset.defaultText;
             slotElement.classList.remove('equipped');
-            slotElement.classList.remove('set-item-glow'); // Remove glow if unequipped
+            slotElement.classList.remove('set-item-glow');
             slotElement.style.borderColor = '';
         }
     });
@@ -756,10 +730,10 @@ export function renderMerchantStock(stock, buyItemCallback, showMerchantItemTool
     stock.forEach((item, index) => {
         const itemElement = document.createElement('div');
         itemElement.className = 'merchant-slot';
-        itemElement.textContent = item.name; // Display only base name
+        itemElement.textContent = item.name;
         if (item.rarity) itemElement.style.borderColor = RARITY_CONFIG[item.rarity].color;
         itemElement.dataset.itemIndex = index;
-        
+
         itemElement.addEventListener('mouseenter', (event) => showMerchantItemTooltipCallback(event, item));
         itemElement.addEventListener('mouseleave', hideItemTooltip);
         itemElement.addEventListener('click', () => buyItemCallback(item, index));
@@ -775,12 +749,12 @@ export function renderPlayerSellInventory(inventory, sellItemCallback, showPlaye
         itemElement.className = 'bag-slot';
 
         if (item) {
-            itemElement.textContent = item.name; // Display only base name
+            itemElement.textContent = item.name;
             itemElement.dataset.itemIndex = i;
             if (item.rarity) {
                 itemElement.style.borderColor = RARITY_CONFIG[item.rarity].color;
             }
-            
+
             let isEquipped = false;
             for (const slot in gameState.playerStats.equipment) {
                 if (gameState.playerStats.equipment[slot] === item) {
