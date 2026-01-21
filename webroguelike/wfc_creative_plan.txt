@@ -1,0 +1,244 @@
+// Refined WFC Plan for Enhanced Creativity and Reduced Risk
+
+// Goal: Move tile weighting logic from wfc.js to biome definitions in tiles.js
+// This allows for per-biome weight customization and makes wfc.js more generic.
+
+// --- Changes in tiles.js (Conceptual, no actual file modification here) ---
+// Each TILE_PROPERTY entry should gain a 'baseWeight' and optionally 'weightModifiers'.
+
+// Example (FOREST_TILE_PROPERTIES):
+// const FOREST_TILE_PROPERTIES = {
+//     [FOREST_TILE_TYPES.FIELD_BASE_NONE]: { walkable: true, spawnable: true, baseWeight: 10 }, // More common
+//     [FOREST_TILE_TYPES.FIELD_BASE_FLOWER]: { walkable: true, spawnable: true, baseWeight: 3, weightModifiers: { isObject: 0.8 } }, // Less common, slightly reduced if considered an 'object'
+//     [FOREST_TILE_TYPES.WOOD_1]: { walkable: false, spawnable: false, baseWeight: 2, weightModifiers: { isObstacle: 0.5, biomeSpecificWood: 0.6 } }, // Less common wood
+//     // ... other tiles
+// };
+
+// Note: The specific keys in 'weightModifiers' (e.g., 'isObject', 'isObstacle', 'biomeSpecificWood')
+// would need to be defined and consistently applied across the game logic.
+// For now, we'll keep it simple and focus on 'baseWeight' and 'type' for modification in wfc.js.
+
+// --- Changes in wfc.js (Proposed Code) ---
+
+import { forestTiles, iceTiles, caveTiles, volcanicTiles } from './tiles.js';
+
+/**
+ * Dynamically calculate tile weights from TILE_PROPERTIES,
+ * incorporating baseWeight and any defined weight modifiers.
+ * This function is now more generic, relying on tileSet for weight logic.
+ */
+function buildTileWeights(tileSet) {
+    const weights = {};
+
+    for (const tileName of Object.values(tileSet.TILE_TYPES)) {
+        const prop = tileSet.TILE_PROPERTIES[tileName];
+
+        // Start with baseWeight from properties, default to 1 if not defined
+        let weight = prop?.baseWeight ?? 1;
+
+        // Apply general modifiers based on properties (moved from hardcoded if-statements)
+        if (prop?.walkable === false) { // Non-walkable tiles (obstacles) generally less common
+            weight *= (prop?.weightModifiers?.isObstacle ?? 0.7); // Use biome-defined modifier, or default 0.7
+        }
+        if (prop?.spawnable === false) { // Non-spawnable (e.g., specific objects) might be less common
+            weight *= (prop?.weightModifiers?.notSpawnable ?? 0.9); // Use biome-defined modifier, or default 0.9
+        }
+
+        // Apply biome-specific modifiers if defined in TILE_PROPERTIES
+        // This allows each biome to define its own specific adjustments for common types
+        if (prop?.weightModifiers?.type === 'wood') {
+            weight *= (prop?.weightModifiers?.value ?? 0.5); // Default to 0.5 for wood
+        }
+        if (prop?.weightModifiers?.type === 'rock') {
+            weight *= (prop?.weightModifiers?.value ?? 0.5); // Default to 0.5 for rock
+        }
+        if (prop?.weightModifiers?.type === 'lake') {
+            weight *= (prop?.weightModifiers?.value ?? 0.3); // Default to 0.3 for lake
+        }
+
+        // Ensure weight is not negative or zero
+        weights[tileName] = Math.max(0.01, weight); // Minimum weight to prevent division by zero in entropy
+
+    }
+
+    return weights;
+}
+
+/**
+ * Weighted random choice (no change from previous wfc_fix_plan.txt)
+ */
+function weightedRandom(options, weights) {
+    let total = 0;
+    for (const opt of options) total += weights[opt] ?? 1;
+
+    let r = Math.random() * total;
+    for (const opt of options) {
+        r -= weights[opt] ?? 1;
+        if (r <= 0) return opt;
+    }
+    return options[0];
+}
+
+/**
+ * Shannon entropy (no change from previous wfc_fix_plan.txt)
+ */
+function entropy(options, weights) {
+    let sum = 0;
+    let sumLog = 0;
+
+    for (const opt of options) {
+        const w = weights[opt] ?? 1;
+        sum += w;
+        sumLog += w * Math.log(w);
+    }
+
+    return Math.log(sum) - (sumLog / sum);
+}
+
+export function generateWfcMap(width, height, activeTileSet) {
+    const tileSet = activeTileSet;
+    const TILE_WEIGHTS = buildTileWeights(tileSet); // Dynamic weights per tileSet
+
+    // ... (rest of generateWfcMap remains largely the same as wfc_fix_plan.txt)
+
+    function initGrid() {
+        const grid = [];
+        const allTiles = Object.values(tileSet.TILE_TYPES);
+
+        for (let y = 0; y < height; y++) {
+            grid[y] = [];
+            for (let x = 0; x < width; x++) {
+                grid[y][x] = {
+                    x,
+                    y,
+                    collapsed: false,
+                    options: [...allTiles],
+                };
+            }
+        }
+        return grid;
+    }
+
+    function lowestEntropyCells(grid) {
+        let min = Infinity;
+        let cells = [];
+
+        for (const row of grid) {
+            for (const cell of row) {
+                if (cell.collapsed || cell.options.length === 0) continue;
+
+                const e = entropy(cell.options, TILE_WEIGHTS);
+                if (e < min) {
+                    min = e;
+                    cells = [cell];
+                } else if (e === min) {
+                    cells.push(cell);
+                }
+            }
+        }
+        return cells;
+    }
+
+    function propagate(start, grid) {
+        const stack = [start];
+        const w = grid[0].length;
+        const h = grid.length;
+
+        while (stack.length) {
+            const cell = stack.pop();
+            const { x, y } = cell;
+
+            const neighbors = [
+                { dx: 0, dy: -1, dir: 'down' },
+                { dx: 1, dy: 0, dir: 'left' },
+                { dx: 0, dy: 1, dir: 'up' },
+                { dx: -1, dy: 0, dir: 'right' },
+            ];
+
+            for (const { dx, dy, dir } of neighbors) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+
+                const n = grid[ny][nx];
+                if (n.collapsed) continue;
+
+                const before = n.options.length;
+
+                n.options = n.options.filter(opt =>
+                    cell.options.some(cOpt =>
+                        tileSet.ADJACENCY_RULES[cOpt]?.[dir]?.includes(opt)
+                    )
+                );
+
+                if (n.options.length < before) {
+                    stack.push(n);
+                }
+            }
+        }
+    }
+
+    let tries = 0;
+
+    while (tries < 10) { // Limit attempts to prevent infinite loops
+        const grid = initGrid();
+        let done = 0;
+
+        // Optionally, pre-collapse a few random cells or border cells for more varied starting points
+        // For example:
+        // const startX = Math.floor(Math.random() * width);
+        // const startY = Math.floor(Math.random() * height);
+        // const initialCell = grid[startY][startX];
+        // const initialChoice = weightedRandom(initialCell.options, TILE_WEIGHTS);
+        // initialCell.options = [initialChoice];
+        // initialCell.collapsed = true;
+        // done++;
+        // propagate(initialCell, grid);
+
+
+        while (done < width * height) {
+            const candidates = lowestEntropyCells(grid);
+            if (!candidates.length) break; // Stuck, no more options
+
+            const cell = candidates[Math.floor(Math.random() * candidates.length)];
+            const choice = weightedRandom(cell.options, TILE_WEIGHTS);
+
+            cell.options = [choice];
+            cell.collapsed = true;
+            done++;
+
+            propagate(cell, grid);
+        }
+
+        if (done === width * height) {
+            // Successfully collapsed entire grid
+            return grid.map(row =>
+                row.map(cell => ({ name: cell.options[0] }))
+            );
+        }
+
+        tries++; // Try again if stuck
+    }
+
+    console.error('WFC failed after multiple attempts. Consider adjusting adjacency rules or weights.');
+    return null; // Return null if WFC consistently fails
+}
+
+// --- 기대되는 것과 문제가 생길 수도 있는 곳 ---
+
+// 기대되는 것:
+// 1. 바이옴별로 세밀한 타일 등장 가중치 조절: 이제 각 바이옴의 TILE_PROPERTIES에서 baseWeight와 weightModifiers를 정의할 수 있으므로, wfc.js 파일을 수정하지 않고도 바이옴마다 나무, 바위, 호수 등의 등장 빈도를 다르게 설정할 수 있습니다. 예를 들어, 숲 바이옴에서는 나무의 weightModifiers.value를 낮게 설정하고, 바위 바이옴에서는 바위의 weightModifiers.value를 높게 설정할 수 있습니다.
+// 2. wfc.js의 재사용성 및 유지보수성 향상: wfc.js는 이제 가중치 계산 로직의 '뼈대'만 가지게 되며, 실제 가중치 '데이터'와 '구체적인 조절 로직'은 tiles.js(또는 이를 활용하는 biomeController.js)로 이동합니다. 이는 wfc.js를 더 범용적이고 재사용 가능하게 만들고, 새로운 바이옴을 추가하거나 기존 바이옴의 타일 균형을 조정할 때 wfc.js를 건드리지 않아도 되므로 유지보수성이 크게 향상됩니다.
+// 3. 코드의 명확성과 책임 분리: 맵 생성 로직(wfc.js)과 맵 콘텐츠 정의 로직(tiles.js) 간의 책임이 더 명확하게 분리됩니다. 이는 코드를 이해하고 확장하기 쉽게 만듭니다.
+// 4. 창의성과 실험의 용이성: 개발자가 tiles.js에서 다양한 baseWeight와 weightModifiers 조합을 실험하여, wfc.js의 핵심 알고리즘을 변경하지 않고도 다양한 맵 생성 결과를 쉽게 만들 수 있습니다.
+// 5. '마법의 숫자' 제거: 하드코딩된 숫자들(0.8, 0.4 등)이 tiles.js의 TILE_PROPERTIES 내부로 이동하여 각 타일의 특성에 따라 의미 있는 값으로 관리될 수 있습니다.
+
+// 문제가 생길 수도 있는 곳:
+// 1. tiles.js 파일 수정의 필요성: 이 계획을 구현하려면 기존 tiles.js 파일의 TILE_PROPERTIES 객체에 baseWeight 및 weightModifiers 필드를 추가해야 합니다. 이 작업은 수동으로 이루어져야 합니다.
+// 2. 가중치 설계의 복잡성 증가: 각 타일에 대한 baseWeight와 weightModifiers를 설계하는 것이 이전보다 더 많은 고민과 테스트를 필요로 할 수 있습니다. 잘못된 가중치 조합은 여전히 맵 생성 실패(WFC failed)나 원치 않는 패턴을 초래할 수 있습니다.
+// 3. 일관성 유지의 중요성: 모든 바이옴에서 weightModifiers의 키(예: 'isObstacle', 'notSpawnable', 'type')를 일관되게 사용해야 합니다. 그렇지 않으면 wfc.js의 buildTileWeights 함수가 올바르게 작동하지 않을 수 있습니다.
+// 4. 초기 디버깅의 어려움: 새로운 가중치 시스템이 도입되면서, 맵 생성 결과가 예상과 다를 경우 문제의 원인이 wfc.js의 알고리즘인지, 아니면 tiles.js의 가중치 정의 때문인지 초기에는 파악하기 어려울 수 있습니다.
+// 5. `biomeController.js`의 역할 정의: 이 계획은 `biomeController.js`가 `tiles.js`에서 제공하는 biomeTileSet 객체를 `generateWfcMap`에 정확히 전달하고, 필요하다면 `tiles.js`의 `TILE_PROPERTIES`에 가중치 관련 속성을 주입하거나 검증하는 역할을 할 것이라는 가정을 내포합니다. `biomeController.js`의 실제 구현에 따라 추가적인 조정이 필요할 수 있습니다.
+
+// 결론:
+// 이 새로운 계획은 wfc.js를 범용적인 WFC 엔진으로 만들고, 타일 가중치 로직의 책임을 tiles.js(또는 biomeController.js)로 옮겨서 시스템의 유연성과 확장성을 극대화합니다. 이는 초기 설정 단계에서 tiles.js를 수정해야 하는 추가 작업이 있지만, 장기적으로는 훨씬 더 강력하고 유지보수하기 쉬운 솔루션이 될 것입니다.

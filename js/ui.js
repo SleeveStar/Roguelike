@@ -13,9 +13,8 @@ import {
     // Pagination Elements
     prevPageBtn, pageNumberDisplay, nextPageBtn
 } from './domElements.js';
-import { TILE_SIZE, RARITY_CONFIG, AFFIX_TYPES, INVENTORY_SIZE, EQUIPMENT_SETS } from './constants.js';
-import { TILE_TYPES } from './tiles.js';
-import { playerImage, goldIconImage, healingBlockImage, monsterImageCache, tileImageCache } from './imageLoader.js';
+import { TILE_SIZE, RARITY_CONFIG, AFFIX_TYPES, INVENTORY_SIZE, EQUIPMENT_SETS, BIOMES } from './constants.js';
+import { playerImage, goldIconImage, healingBlockImage, monsterImageCache, tileImageCache, getCurrentActiveTileSet } from './imageLoader.js';
 
 export function initUI() {
     // This function can be used for any other UI initialization that doesn't fit into other exports.
@@ -125,47 +124,57 @@ export function logCombatMessage(message) {
     }, 0); // Use setTimeout with 0 delay to defer until after current call stack clears
 }
 
-export function clearCanvas() { 
-    ctx.fillStyle = '#2e391b'; // Set the desired background color
+export function clearCanvas() {
+    const currentBiomeInfo = BIOMES[gameState.currentBiome];
+    ctx.fillStyle = currentBiomeInfo ? currentBiomeInfo.baseColor : '#2e391b'; // Use biome base color
     ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height); // Fill the entire canvas
 }
 
 export function drawMap() {
-    if (!gameState.mapGrid || gameState.mapGrid.length === 0) {
-        // If map data is missing, draw nothing and let the background color show.
+    const activeTileSet = getCurrentActiveTileSet();
+    if (!gameState.mapGrid || gameState.mapGrid.length === 0 || !activeTileSet) {
         return;
     }
+
+    const defaultFallbackTileName = activeTileSet.walkableTileNames[0] || Object.values(activeTileSet.TILE_TYPES)[0];
 
     for (let y = 0; y < gameState.mapGrid.length; y++) {
         for (let x = 0; x < gameState.mapGrid[y].length; x++) {
             const tile = gameState.mapGrid[y][x];
-            const tileName = tile ? tile.name : TILE_TYPES.FIELD_BASE_NONE; // Fallback to FIELD_BASE_NONE
+            const tileName = tile ? tile.name : defaultFallbackTileName; // Fallback to a default walkable tile
 
-            // If it's the "empty" field tile, don't draw anything, let the background show
-            if (tileName === TILE_TYPES.FIELD_BASE_NONE) {
+            // Get properties for the specific tile
+            const tileProps = activeTileSet.TILE_PROPERTIES[tileName];
+            
+            // If the tile is not defined or is meant to be a background tile, skip drawing.
+            // This allows the clearCanvas color to show through.
+            if (!tileProps || tileName === defaultFallbackTileName) { // Skip drawing if it's the generic background tile
+                 // Check if the tile exists in TILE_PROPERTIES, if not it's invalid
+                 if (!tileProps) {
+                    console.warn(`Tile ${tileName} not found in TILE_PROPERTIES for ${gameState.currentBiome} biome.`);
+                 }
                 continue; 
             }
 
-            // Only attempt to draw if there's an actual tile name (and it's not FIELD_BASE_NONE)
+            // Only attempt to draw if there's an actual tile name
             if (tileName) { 
                 const image = tileImageCache[tileName];
                 const posX = x * TILE_SIZE;
                 const posY = y * TILE_SIZE;
 
-                if (image && image.complete && image.naturalHeight !== 0) {
-                    // Apply transparency for specific tiles
-                    if (tileName === TILE_TYPES.FIELD_BASE_SEED || tileName === TILE_TYPES.FIELD_BASE_FLOWER) {
-                        ctx.globalAlpha = 0.3; // 70% transparency (1.0 - 0.7 = 0.3)
+                if (image && image.naturalHeight !== 0) {
+                    // console.log(`Drawing tile ${tileName}. Image: `, image, ` Natural Height: ${image.naturalHeight}`);
+                    // Apply transparency if specified in tile properties
+                    if (tileProps.drawTransparency) {
+                        ctx.globalAlpha = tileProps.drawTransparency;
                     }
                     ctx.drawImage(image, posX, posY, TILE_SIZE, TILE_SIZE);
                     // Reset globalAlpha after drawing the transparent image
-                    if (tileName === TILE_TYPES.FIELD_BASE_SEED || tileName === TILE_TYPES.FIELD_BASE_FLOWER) {
+                    if (tileProps.drawTransparency) {
                         ctx.globalAlpha = 1.0;
                     }
                 } else {
-                    // Fallback for missing or unloaded images - draw a warning, but let background show.
-                    // This case should ideally not happen if all images are preloaded and rules are correct.
-                    console.warn(`Fallback for tile ${tileName}. Image failed to load or is invalid.`);
+                    console.warn(`Fallback for tile ${tileName}. Image failed to load or is invalid. Biome: ${gameState.currentBiome}`);
                 }
             }
         }
@@ -181,12 +190,55 @@ export function drawGrid() {
 
 export function drawPlayer() {
     if (playerImage.complete && playerImage.naturalHeight !== 0) {
-        ctx.drawImage(playerImage, gameState.player.x, gameState.player.y, TILE_SIZE, TILE_SIZE);
+        const playerX = gameState.player.x;
+        const playerY = gameState.player.y;
+        const playerSize = TILE_SIZE;
+
+        // 캐릭터 중심점
+        const cx = playerX + playerSize / 2;
+        const cy = playerY + playerSize / 2;
+
+        ctx.save();
+
+        // 1) 원형 페이드아웃 발광 (Radial Gradient)
+        const innerRadius = playerSize * 0.15; // 중심 밝은 영역 크기
+        const outerRadius = playerSize * 0.55; // 빛이 퍼지는 최대 반경 (조절 포인트!)
+
+        const g = ctx.createRadialGradient(cx, cy, innerRadius, cx, cy, outerRadius);
+
+        // 중심은 밝고, 바깥으로 갈수록 투명해지게
+        g.addColorStop(0.0, "rgba(0, 255, 255, 0.9)");
+        g.addColorStop(0.4, "rgba(0, 255, 255, 0.35)");
+        g.addColorStop(1.0, "rgba(0, 255, 255, 0.0)");
+
+        // 깜빡임(알파) 적용
+        ctx.globalAlpha = gameState.playerEffectAlpha;
+
+        // 선택: 더 “빛 번짐” 느낌을 원하면 살짝 블러도 추가 가능
+        // (그라데이션만으로도 충분히 부드러움)
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = "rgba(0, 255, 255, 0.8)";
+
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(cx, cy, outerRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2) 캐릭터는 선명하게
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = "rgba(0,0,0,0)";
+        ctx.globalAlpha = 1.0;
+
+        ctx.drawImage(playerImage, playerX, playerY, playerSize, playerSize);
+
+        ctx.restore();
     } else {
-        ctx.fillStyle = 'blue'; // Fallback: PLAYER_COLOR
+        ctx.fillStyle = "blue";
         ctx.fillRect(gameState.player.x, gameState.player.y, TILE_SIZE, TILE_SIZE);
     }
 }
+
+
 
 export function drawHealingBlock(block) {
     if (healingBlockImage.complete && healingBlockImage.naturalHeight !== 0) {
@@ -204,6 +256,18 @@ export function drawHealingBlock(block) {
 export function drawGame() {
     clearCanvas();
     drawMap(); // Replaces drawGrid()
+
+    // 플레이어 이펙트 투명도 업데이트
+    gameState.playerEffectAlpha += gameState.playerEffectAlphaDirection * 0.03; // 깜빡임 속도 조절 (0.03)
+
+    if (gameState.playerEffectAlpha <= 0.5) { // 최소 투명도 (완전히 사라지지 않도록)
+        gameState.playerEffectAlpha = 0.5;
+        gameState.playerEffectAlphaDirection = 1; // 다시 밝아지도록
+    } else if (gameState.playerEffectAlpha >= 1.0) { // 최대 투명도
+        gameState.playerEffectAlpha = 1.0;
+        gameState.playerEffectAlphaDirection = -1; // 다시 어두워지도록
+    }
+
     gameState.healingBlocks.forEach(drawHealingBlock);
     if (gameState.wanderingMerchant) {
         if (goldIconImage.complete && goldIconImage.naturalHeight !== 0) {
@@ -224,6 +288,9 @@ export function drawGame() {
         }
     }
     drawPlayer();
+    const currentBiomeInfo = BIOMES[gameState.currentBiome]; // Get current biome info
+    const monsterGradientColor = currentBiomeInfo ? currentBiomeInfo.baseColor : 'rgba(46, 57, 27, 0.4)'; // Use biome base color
+
     gameState.activeMonsters.forEach(monster => {
         const monsterImg = monsterImageCache[monster.monsterType];
 
@@ -237,7 +304,7 @@ export function drawGame() {
         const b = parseInt(hex.substring(4, 6), 16);
 
         gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.9)`);
-        gradient.addColorStop(1, `rgba(46, 57, 27, 0.4)`); // Changed from rgba(0, 0, 0, 0.4) to map background color
+        gradient.addColorStop(1, monsterGradientColor); // Use biome base color for monster gradient
         
         ctx.fillStyle = gradient;
         ctx.fillRect(monster.x, monster.y, TILE_SIZE, TILE_SIZE);

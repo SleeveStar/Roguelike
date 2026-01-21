@@ -1,0 +1,157 @@
+// wfc.js
+import { forestTiles, iceTiles, caveTiles, volcanicTiles } from './tiles.js';
+
+/**
+ * 타일 등장 가중치
+ */
+const TILE_WEIGHTS = {
+    FIELD_BASE_NONE: 12,
+    FIELD_BASE_FLOWER: 4,
+    FIELD_BASE_SEED: 3,
+
+    WOOD_1: 1,
+    WOOD_2: 1,
+    WOOD_3: 1,
+
+    LAKE_MM: 0.5,
+    LAKE_UM: 0.5,
+    LAKE_DM: 0.5,
+    LAKE_ML: 0.5,
+    LAKE_MR: 0.5,
+    LAKE_UL: 0.5,
+    LAKE_UR: 0.5,
+    LAKE_DL: 0.5,
+    LAKE_DR: 0.5,
+};
+
+/**
+ * 가중 랜덤
+ */
+function weightedRandom(options) {
+    let total = 0;
+    for (const o of options) {
+        total += TILE_WEIGHTS[o] ?? 1;
+    }
+
+    let r = Math.random() * total;
+    for (const o of options) {
+        r -= TILE_WEIGHTS[o] ?? 1;
+        if (r <= 0) return o;
+    }
+    return options[0];
+}
+
+/**
+ * Shannon entropy
+ */
+function entropy(options) {
+    let sum = 0;
+    let sumLog = 0;
+
+    for (const o of options) {
+        const w = TILE_WEIGHTS[o] ?? 1;
+        sum += w;
+        sumLog += w * Math.log(w);
+    }
+    return Math.log(sum) - sumLog / sum;
+}
+
+export function generateWfcMap(width, height, tileSet) {
+    const grid = [];
+    const allTiles = Object.values(tileSet.TILE_TYPES);
+
+    for (let y = 0; y < height; y++) {
+        grid[y] = [];
+        for (let x = 0; x < width; x++) {
+            grid[y][x] = {
+                x,
+                y,
+                collapsed: false,
+                options: [...allTiles],
+            };
+        }
+    }
+
+    function lowestEntropyCells() {
+        let min = Infinity;
+        let result = [];
+
+        for (const row of grid) {
+            for (const cell of row) {
+                if (cell.collapsed || cell.options.length === 0) continue;
+                const e = entropy(cell.options);
+                if (e < min) {
+                    min = e;
+                    result = [cell];
+                } else if (e === min) {
+                    result.push(cell);
+                }
+            }
+        }
+        return result;
+    }
+
+    function propagate(start) {
+        const stack = [start];
+        const w = width;
+        const h = height;
+
+        while (stack.length) {
+            const cell = stack.pop();
+            const { x, y } = cell;
+
+            const dirs = [
+                { dx: 0, dy: -1, dir: 'down' },
+                { dx: 1, dy: 0, dir: 'left' },
+                { dx: 0, dy: 1, dir: 'up' },
+                { dx: -1, dy: 0, dir: 'right' },
+            ];
+
+            for (const { dx, dy, dir } of dirs) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+
+                const n = grid[ny][nx];
+                if (n.collapsed) continue;
+
+                const before = n.options.length;
+                n.options = n.options.filter(no =>
+                    cell.options.some(co =>
+                        tileSet.ADJACENCY_RULES[co]?.[dir]?.includes(no)
+                    )
+                );
+
+                if (n.options.length < before) stack.push(n);
+            }
+        }
+    }
+
+    let collapsed = 0;
+    const total = width * height;
+
+    while (collapsed < total) {
+        const candidates = lowestEntropyCells();
+        if (!candidates.length) break;
+
+        const cell =
+            candidates[Math.floor(Math.random() * candidates.length)];
+        const chosen = weightedRandom(cell.options);
+
+        cell.options = [chosen];
+        cell.collapsed = true;
+        collapsed++;
+
+        propagate(cell);
+    }
+
+    return grid.map(row =>
+        row.map(c => ({
+            name: c.options[0],
+        }))
+    );
+}
+
+
+
+*그럼 이 코드는 어때 이 코드로 전체 코드를 수정했을때 기대되는 것과 문제가 생길 수도 있는것을 정리해서 알려줘

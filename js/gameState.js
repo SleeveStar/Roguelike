@@ -25,12 +25,14 @@ export const gameState = {
         currentPage: 1, // Current page for inventory display
         itemsPerPage: INVENTORY_SIZE, // Items per page
         equipment: {
-            hat: null, neck: null, shoulder: null, mainWeapon: null, chest: null, 
+            hat: null, neck: null, shoulder: null, mainWeapon: null, chest: null,
             subWeapon: null, wrist: null, legs: null, ring1: null, ring2: null, feet: null
         },
         statusEffects: []
     },
     player: { x: 0, y: 0 },
+    playerEffectAlpha: 1.0,           // 플레이어 이펙트 투명도 (1.0 완전 불투명 ~ 0.5 약간 투명)
+    playerEffectAlphaDirection: -1,   // -1 감소, 1 증가
     activeMonsters: [],
     healingBlocks: [],
     wanderingMerchant: null,
@@ -39,6 +41,10 @@ export const gameState = {
     currentCombatMonster: null,
     mapGrid: [],
     isAutoAttacking: false,
+    currentBiome: 'FOREST', // Added currentBiome
+    biomeRepeatStreak: 0,
+    mapExits: { up: null, down: null, left: null, right: null },
+    exitTiles: [],
 };
 
 export let isInventoryOpen = false;
@@ -66,7 +72,7 @@ export function resetGameState() {
         currentPage: 1, // Current page for inventory display
         itemsPerPage: INVENTORY_SIZE, // Items per page
         equipment: {
-            hat: null, neck: null, shoulder: null, mainWeapon: null, chest: null, 
+            hat: null, neck: null, shoulder: null, mainWeapon: null, chest: null,
             subWeapon: null, wrist: null, legs: null, ring1: null, ring2: null, feet: null
         },
         statusEffects: []
@@ -79,5 +85,9 @@ export function resetGameState() {
     gameState.isUiVisible = false;
     gameState.currentCombatMonster = null;
     gameState.isAutoAttacking = false;
+    gameState.currentBiome = 'FOREST'; // Reset currentBiome
     isInventoryOpen = false;
+    gameState.biomeRepeatStreak = 0;
+    gameState.mapExits = { up: null, down: null, left: null, right: null };
+    gameState.exitTiles = [];
 }

@@ -1,16 +1,19 @@
 // constants.js
 export const TILE_SIZE = 40;
 export const PLAYER_COLOR = 'blue';
-// export const PLAYER_IMAGE_PATH = './img/CHARACTER.png';
-export const PLAYER_IMAGE_PATH =
-  new URL('../img/CHARACTER.png', import.meta.url).href;
+// export const PLAYER_IMAGE_PATH = '/img/CHARACTER.png';
+//호스팅버전
+export const PLAYER_IMAGE_PATH = new URL('../img/CHARACTER.png', import.meta.url).href;
+
 export const MERCHANT_COLOR = '#8B4513';
-// export const GOLD_ICON_PATH = './img/GOLD_COIN.png';
-export const GOLD_ICON_PATH =
-  new URL('../img/GOLD_COIN.png', import.meta.url).href;
-// export const HEALING_BLOCK_IMAGE_PATH = './img/MEDI_KIT.png';
-export const HEALING_BLOCK_IMAGE_PATH =
-  new URL('../img/MEDI_KIT.png', import.meta.url).href;
+
+// export const GOLD_ICON_PATH = '/img/GOLD_COIN.png';
+// 호스팅버전
+export const GOLD_ICON_PATH = new URL('../img/GOLD_COIN.png', import.meta.url).href;
+
+// export const HEALING_BLOCK_IMAGE_PATH = '/img/MEDI_KIT.png';
+// 호스팅버전
+export const HEALING_BLOCK_IMAGE_PATH = new URL('../img/MEDI_KIT.png', import.meta.url).href;
 
 export const MONSTER_SPAWN_COUNT = 5;
 export const HEALING_BLOCK_CHANCE = 0.05;
@@ -36,51 +39,58 @@ export const MONSTER_TIERS = {
     champion: { name: '챔피언', stat_multiplier: 2.0, drop_rate_bonus: 0.25,threat_bonus: 10, rarity_bonus: 20, base_gold_drop: 20 }
 };
 
+export const BIOMES = {
+    FOREST:   { name: 'Forest',   tileSet: 'forestTiles',   baseColor: '#2e391b' },
+    ICE:      { name: 'Ice',      tileSet: 'iceTiles',      baseColor: '#FFFFFF' },
+    CAVE:     { name: 'Cave',     tileSet: 'caveTiles',     baseColor: '#000000' },
+    VOLCANO:  { name: 'Volcano',  tileSet: 'volcanicTiles', baseColor: '#000000' },
+};
+
 export const MONSTER_TYPES = [
-    { name: "BLUE_SLIME",      archetype: 'tanky_slow' },
-    { name: "BONE_SLIME",      archetype: 'tanky_slow' },
-    { name: "CRYSTAL_GOLEM",   archetype: 'tank' },
-    { name: "DARK_KHIGHT",     archetype: 'bruiser' },
-    { name: "EARTH_TURTLE",    archetype: 'tank' },
-    { name: "EARTH_WORM",      archetype: 'standard' },
-    { name: "ENT_WOOD",        archetype: 'tank' },
-    { name: "FIRE_WORM",       archetype: 'caster' },
-    { name: "FROG_SHAMAN",     archetype: 'caster' },
-    { name: "GARGOYLE",        archetype: 'rusher' },
-    { name: "GHOST",           archetype: 'evasive' },
-    { name: "GOBLIN",          archetype: 'standard' },
-    { name: "GREEN_SLIME",     archetype: 'tanky_slow' },
-    { name: "GREY_WOLF",       archetype: 'rusher' },
-    { name: "GROUND_DRAGON",   archetype: 'elite' },
-    { name: "ICE_DRAGON",      archetype: 'elite' },
-    { name: "ICE_LICH",        archetype: 'caster' },
-    { name: "ICE_SKULKING",    archetype: 'rusher' },
-    { name: "KOBOLT",          archetype: 'standard' },
-    { name: "LAVA_GOLEM",      archetype: 'tank' },
-    { name: "LIZARD_MAN",      archetype: 'standard' },
-    { name: "MIMIC",           archetype: 'bruiser' },
-    { name: "ORC_SHAMAN",      archetype: 'caster' },
-    { name: "ORC_WARRIOR",     archetype: 'bruiser' },
-    { name: "POISON_DRAGON",   archetype: 'elite' },
-    { name: "POISON_LICH",     archetype: 'caster' },
-    { name: "POISON_MUSHMAN",  archetype: 'caster' },
-    { name: "POISON_SIDE",     archetype: 'standard' },
-    { name: "RAPTOR_ARCHER",   archetype: 'glass_cannon' },
-    { name: "RAPTOR_WARRIOR",  archetype: 'rusher' },
-    { name: "RED_DRAGON",      archetype: 'elite' },
-    { name: "RED_OGRE",        archetype: 'bruiser' },
-    { name: "RED_RIZARDMAN",   archetype: 'standard' },
-    { name: "ROCK_GOLEM",      archetype: 'tank' },
-    { name: "SATANIC_GARGOYLE",archetype: 'elite' },
-    { name: "SKEL_WARRIOR",    archetype: 'standard' },
-    { name: "SKUL_LICH",       archetype: 'caster' },
-    { name: "WEREWOLF",        archetype: 'bruiser' },
-    { name: "WOOD_WARM",       archetype: 'standard' },
-    { name: "ZOMBIE",          archetype: 'tanky_slow' }
+    { name: "BLUE_SLIME",      archetype: 'tanky_slow', biomes: ['FOREST', 'CAVE'] },
+    { name: "BONE_SLIME",      archetype: 'tanky_slow', biomes: ['ICE', 'CAVE'] },
+    { name: "CRYSTAL_GOLEM",   archetype: 'tank', biomes: ['ICE', 'CAVE'] },
+    { name: "DARK_KHIGHT",     archetype: 'bruiser', biomes: ['CAVE'] },
+    { name: "EARTH_TURTLE",    archetype: 'tank', biomes: ['FOREST'] },
+    { name: "EARTH_WORM",      archetype: 'standard', biomes: ['FOREST', 'CAVE'] },
+    { name: "ENT_WOOD",        archetype: 'tank', biomes: ['FOREST'] },
+    { name: "FIRE_WORM",       archetype: 'caster', biomes: ['VOLCANO'] },
+    { name: "FROG_SHAMAN",     archetype: 'caster', biomes: ['FOREST'] },
+    { name: "GARGOYLE",        archetype: 'rusher', biomes: ['CAVE', 'VOLCANO'] },
+    { name: "GHOST",           archetype: 'evasive', biomes: ['ICE', 'CAVE'] },
+    { name: "GOBLIN",          archetype: 'standard', biomes: ['FOREST', 'CAVE'] },
+    { name: "GREEN_SLIME",     archetype: 'tanky_slow', biomes: ['FOREST'] },
+    { name: "GREY_WOLF",       archetype: 'rusher', biomes: ['FOREST'] },
+    { name: "GROUND_DRAGON",   archetype: 'elite', biomes: ['VOLCANO', 'FOREST'] }, // Ground Dragon could be in rocky forests or volcanic
+    { name: "ICE_DRAGON",      archetype: 'elite', biomes: ['ICE'] },
+    { name: "ICE_LICH",        archetype: 'caster', biomes: ['ICE'] },
+    { name: "ICE_SKULKING",    archetype: 'rusher', biomes: ['ICE'] },
+    { name: "KOBOLT",          archetype: 'standard', biomes: ['FOREST', 'CAVE'] },
+    { name: "LAVA_GOLEM",      archetype: 'tank', biomes: ['VOLCANO'] },
+    { name: "LIZARD_MAN",      archetype: 'standard', biomes: ['FOREST', 'VOLCANO'] }, // Lizard Man in forests or volcanic areas
+    { name: "MIMIC",           archetype: 'bruiser', biomes: ['CAVE'] },
+    { name: "ORC_SHAMAN",      archetype: 'caster', biomes: ['FOREST'] },
+    { name: "ORC_WARRIOR",     archetype: 'bruiser', biomes: ['FOREST'] },
+    { name: "POISON_DRAGON",   archetype: 'elite', biomes: ['FOREST'] }, // Poison Dragon for swampy/poisonous forests (if we add swamp later)
+    { name: "POISON_LICH",     archetype: 'caster', biomes: ['FOREST'] },
+    { name: "POISON_MUSHMAN",  archetype: 'caster', biomes: ['FOREST'] },
+    { name: "POISON_SIDE",     archetype: 'standard', biomes: ['FOREST'] },
+    { name: "RAPTOR_ARCHER",   archetype: 'glass_cannon', biomes: ['FOREST'] },
+    { name: "RAPTOR_WARRIOR",  archetype: 'rusher', biomes: ['FOREST'] },
+    { name: "RED_DRAGON",      archetype: 'elite', biomes: ['VOLCANO'] },
+    { name: "RED_OGRE",        archetype: 'bruiser', biomes: ['VOLCANO'] },
+    { name: "RED_RIZARDMAN",   archetype: 'standard', biomes: ['VOLCANO'] },
+    { name: "ROCK_GOLEM",      archetype: 'tank', biomes: ['CAVE', 'VOLCANO'] },
+    { name: "SATANIC_GARGOYLE",archetype: 'elite', biomes: ['CAVE', 'VOLCANO'] },
+    { name: "SKEL_WARRIOR",    archetype: 'standard', biomes: ['ICE', 'CAVE'] },
+    { name: "SKUL_LICH",       archetype: 'caster', biomes: ['ICE', 'CAVE'] },
+    { name: "WEREWOLF",        archetype: 'bruiser', biomes: ['FOREST', 'CAVE'] },
+    { name: "WOOD_WARM",       archetype: 'standard', biomes: ['FOREST'] },
+    { name: "ZOMBIE",          archetype: 'tanky_slow', biomes: ['CAVE'] }
 ];
 
 export const RARITY_CONFIG = {
-    common:     { name: '일반',     color: '#ffffff', probability: 45,  budget: 5,  level_multiplier: 1.0, affixSlots: { min: 0, max: 1 },
+    common:     { name: '일반',     color: '#ffffff', probability: 0.1,  budget: 5,  level_multiplier: 1.0, affixSlots: { min: 0, max: 1 },
                     affixValues: {
                         physicalAttack: { min: 1, max: 2 }
                     },
@@ -146,7 +156,7 @@ export const RARITY_CONFIG = {
                     },
                     possibleAffixes: ['physicalAttack', 'critChance', 'critDamage', 'lifesteal', 'statusEffectBleed', 'elementalDamage']
                 },
-    legacy:     { name: '유산',     color: '#00FFFF', probability: 0.1, budget: 600, level_multiplier: 4.8, affixSlots: { min: 5, max: 6 },
+    legacy:     { name: '유산',     color: '#00FFFF', probability: 40, budget: 600, level_multiplier: 4.8, affixSlots: { min: 5, max: 6 },
                     affixValues: {
                         physicalAttack: { min: 60, max: 96 },
                         critChance: { min: 0.18, max: 0.25 },

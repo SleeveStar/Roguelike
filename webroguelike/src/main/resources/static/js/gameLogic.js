@@ -2,10 +2,10 @@
 import { gameState, resetGameState } from './gameState.js';
 import { TILE_SIZE, MONSTER_TIERS, MONSTER_TYPES, BOSS_CHANCE_PERCENT, XP_GAIN_MULTIPLIER, ESCAPE_CHANCE, LEVEL_UP_STAT_POINTS, RARITY_CONFIG, BASE_ITEMS, AFFIX_TYPES, ELEMENTAL_TYPES, INVENTORY_SIZE, ITEM_DROP_CHANCE, TREASURE_CHEST_CHANCE, AFFIX_PREFIXES, UNIQUE_ITEM_NAMES_BY_RARITY_AND_SLOT, EQUIPMENT_SETS } from './constants.js';
 import { getRandomEmptyTile, findWalkableTileOnEdge } from './utils.js';
-import { 
-    logCombatMessage, updateStatusDisplay, createTooltipContent, showItemTooltip, 
-    hideItemTooltip, renderBagGrid, renderEquipment, renderMerchantStock, 
-    renderPlayerSellInventory, updateMerchantPlayerGoldDisplay, drawGame, 
+import {
+    logCombatMessage, updateStatusDisplay, createTooltipContent, showItemTooltip,
+    hideItemTooltip, renderBagGrid, renderEquipment, renderMerchantStock,
+    renderPlayerSellInventory, updateMerchantPlayerGoldDisplay, drawGame,
     initPokemonBattleUI, updatePokemonBattlePlayerUI, updatePokemonBattleMonsterUI,
     renderSidePanelEquipment
 } from './ui.js';
@@ -87,7 +87,7 @@ export function recalculateDerivedStats() {
     derived.magicalAttack += totalStats.intelligence * 2;
     derived.maxMp += totalStats.intelligence * 1;
     derived.magicalDefense += Math.floor(totalStats.intelligence * 0.5);
-    
+
     derived.speed += totalStats.agility * 1;
     derived.evasion += totalStats.agility * 0.002;
     derived.physicalAttack += Math.floor(totalStats.agility * 0.5);
@@ -116,10 +116,10 @@ export function recalculateDerivedStats() {
             item.affixes.forEach(affix => {
                 const affixDefinition = AFFIX_TYPES[affix.type];
                 if (!affixDefinition || affixDefinition.type === 'stat') return;
-                
+
                 let value = 0;
                 if (affixDefinition.minMax) {
-                    value = affix.min !== undefined ? affix.min : 0; 
+                    value = affix.min !== undefined ? affix.min : 0;
                 } else if (affixDefinition.chanceVal && affix.magnitude !== undefined) {
                     value = affix.magnitude;
                 } else if (affix.value !== undefined) {
@@ -332,19 +332,19 @@ export function equipItem(itemIndex) {
         } else if (!gameState.playerStats.equipment.ring2) {
             targetSlot = 'ring2';
         } else {
-            targetSlot = 'ring1'; 
+            targetSlot = 'ring1';
         }
     }
 
     if (gameState.playerStats.equipment[targetSlot]) {
         unequipItem(targetSlot);
     }
-    
+
     gameState.playerStats.equipment[targetSlot] = item;
     gameState.playerStats.inventory.splice(itemIndex, 1);
-    
-    recalculateDerivedStats(); 
-    updateStatusDisplay(); 
+
+    recalculateDerivedStats();
+    updateStatusDisplay();
     renderBagGrid(bagGridElement, gameState.playerStats.inventory, false);
     renderEquipment();
     renderSidePanelEquipment();
@@ -361,10 +361,10 @@ export function unequipItem(slot) {
     gameState.playerStats.inventory.push(item);
     gameState.playerStats.equipment[slot] = null;
 
-    recalculateDerivedStats(); 
-    updateStatusDisplay(); 
+    recalculateDerivedStats();
+    updateStatusDisplay();
     renderBagGrid(bagGridElement, gameState.playerStats.inventory, false);
-    renderEquipment(); 
+    renderEquipment();
     renderSidePanelEquipment();
     hideItemTooltip();
 }
@@ -382,12 +382,12 @@ export function gainExperience(amount) {
 export function levelUp() {
     const base = gameState.playerStats.base;
     base.level++; base.availableStatPoints += LEVEL_UP_STAT_POINTS;
-    base.experienceToNextLevel = base.level * 100 + 50; 
-    
+    base.experienceToNextLevel = base.level * 100 + 50;
+
     recalculateDerivedStats(); // Recalculate stats to get new max HP/MP
     base.hp = gameState.playerStats.derived.maxHp; // Heal to full on level up
     base.mp = gameState.playerStats.derived.maxMp;
-    
+
     logCombatMessage(`<span style="color: yellow;">LEVEL UP! You are now Level ${base.level}!</span>`);
     updateStatusDisplay();
 }
@@ -396,9 +396,9 @@ export function allocateStatPoint(statName) {
     const base = gameState.playerStats.base;
     if (base.availableStatPoints > 0) {
         if (base.hasOwnProperty(statName)) {
-            base[statName]++; 
+            base[statName]++;
             base.availableStatPoints--;
-            recalculateDerivedStats(); 
+            recalculateDerivedStats();
             updateStatusDisplay();
         }
     }
@@ -415,7 +415,7 @@ export function calculateDamage(attacker, defender, attackType, playerEquipment 
 
     const attackerStats = attacker; // attacker는 이미 파생 스탯 객체 또는 몬스터 객체
     const defenderStats = defender; // defender는 이미 파생 스탯 객체 또는 몬스터 객체
-    
+
     // 방어 로직은 그대로 유지 (attacker, defender 자체가 null/undefined일 경우 대비)
     if (!attackerStats || !defenderStats) {
         // console.error("calculateDamage: Attacker or Defender object is null/undefined. This should not happen.", { attacker, defender, attackerStats, defenderStats }); // 디버그 로그 제거
@@ -458,9 +458,9 @@ export function calculateDamage(attacker, defender, attackType, playerEquipment 
     // Critical Hit Check
     const critChance = attackerStats.critChance || 0;
     const isCritical = Math.random() < critChance;
-    
+
     let baseDamage = Math.max(1, attack - defense);
-    
+
     // Apply critical damage if it's a critical hit
     if (isCritical) {
         const critDamage = attackerStats.critDamage || 1.5;
@@ -468,8 +468,8 @@ export function calculateDamage(attacker, defender, attackType, playerEquipment 
     }
 
     // Apply variance
-    baseDamage *= (0.9 + Math.random() * 0.2); 
-    
+    baseDamage *= (0.9 + Math.random() * 0.2);
+
     // Handle elemental damage
     let elementalDamageValue = 0;
     if (attackerStats.elementalDamage) {
@@ -482,7 +482,7 @@ export function calculateDamage(attacker, defender, attackType, playerEquipment 
     if (attackerStats.elementalDamageBonus > 0) {
         elementalDamageValue *= (1 + attackerStats.elementalDamageBonus);
     }
-    
+
     let finalDamage = baseDamage + elementalDamageValue;
     finalDamage = Math.floor(finalDamage);
 
@@ -494,7 +494,7 @@ export function calculateDamage(attacker, defender, attackType, playerEquipment 
         updateStatusDisplay(); // 메인 스탯 패널 업데이트
         updatePokemonBattlePlayerUI(); // 전투 UI의 플레이어 HP 바 업데이트
     }
-    
+
     // Apply Status Effects on hit
     if (attackerStats.statusEffects && attackerStats.statusEffects.length > 0) {
         attackerStats.statusEffects.forEach(effect => {
@@ -510,7 +510,7 @@ export function calculateDamage(attacker, defender, attackType, playerEquipment 
 
 export function applyStatusEffect(target, effect) {
     if (!target.statusEffects) target.statusEffects = [];
-    
+
     const existingEffectIndex = target.statusEffects.findIndex(e => e.type === effect.type);
     if (existingEffectIndex !== -1) {
         target.statusEffects[existingEffectIndex].duration = effect.duration;
@@ -539,7 +539,7 @@ export function processStatusEffects(entity) {
             effectDamage = Math.floor(effect.magnitude * (entity.maxHp * 0.005));
             logCombatMessage(`<span style="color: green;">${entity.name || "Player"} is poisoned for ${effectDamage} damage!</span>`);
         }
-        
+
         if (effectDamage > 0) {
             entity.hp = Math.max(0, entity.hp - effectDamage);
             if (entity.id === 'player') {
@@ -548,7 +548,7 @@ export function processStatusEffects(entity) {
             } else {
                 updatePokemonBattleMonsterUI();
             }
-            
+
             if (entity.hp <= 0) {
                 logCombatMessage(`${entity.name || "Player"} was defeated by ${effect.type}!`);
                 if (entity.id === 'player') gameOver();
@@ -587,7 +587,7 @@ export function generateRandomItem(playerLevel, magicFind = 0, desiredRarity = n
         const rarityProbabilities = Object.values(RARITY_CONFIG).map(r => r.probability);
         const sumOfProbabilities = rarityProbabilities.reduce((sum, prob) => sum + prob, 0);
         const scaledRoll = roll * sumOfProbabilities;
-        
+
         for (const rKey in RARITY_CONFIG) { // Iterate using for...in for original order
             cumulativeProb += RARITY_CONFIG[rKey].probability;
             if (scaledRoll < cumulativeProb) {
@@ -631,7 +631,7 @@ export function generateRandomItem(playerLevel, magicFind = 0, desiredRarity = n
             if (uniqueItemNames.length > 0) {
                 const randomUniqueName = uniqueItemNames[Math.floor(Math.random() * uniqueItemNames.length)];
                 const uniqueItemData = possibleUniqueItems[randomUniqueName];
-                
+
                 generatedItem = {
                     ...generatedItem,
                     ...uniqueItemData,
@@ -693,15 +693,15 @@ export function generateRandomItem(playerLevel, magicFind = 0, desiredRarity = n
     // Determine if we should attempt to generate a Set item, only if not already a Unique
     if (!isUniqueGenerated && (rarityKey === 'epic' || rarityKey === 'mystic' || rarityKey === 'legacy') && Math.random() < SET_ITEM_BASE_CHANCE) {
         // Find set pieces that match the current slot and base item name
-        const possibleSetPieces = EQUIPMENT_SETS.flatMap(set => 
-            set.pieces.filter(piece => 
+        const possibleSetPieces = EQUIPMENT_SETS.flatMap(set =>
+            set.pieces.filter(piece =>
                 piece.slot === randomSlotKey && piece.baseName === baseItem.name
             ).map(piece => ({ ...piece, setId: set.id, setName: set.name, setColor: set.color })) // Add set info
         );
 
         if (possibleSetPieces.length > 0) {
             const randomSetPiece = possibleSetPieces[Math.floor(Math.random() * possibleSetPieces.length)];
-            
+
             generatedItem = {
                 ...generatedItem,
                 ...randomSetPiece,
@@ -770,7 +770,7 @@ export function generateRandomItem(playerLevel, magicFind = 0, desiredRarity = n
                 }
             }
         }
-        
+
         let prefix = '';
         if (generatedItem.affixes.length > 0) {
             const firstAffix = generatedItem.affixes[0];
@@ -796,7 +796,7 @@ export function generateRandomItem(playerLevel, magicFind = 0, desiredRarity = n
         // For normal items, color is based on rarity
         generatedItem.color = rarity.color;
     }
-    
+
     return generatedItem;
 }
 
@@ -806,18 +806,18 @@ export function generateMonster(mapGrid) {
         "BONE_SLIME": "본 슬라임",
         "CRYSTAL_GOLEM": "크리스탈 골렘",
         "DARK_KHIGHT": "다크 나이트",
-        "EARTH_TURTLE": "땅 거북",
-        "EARTH_WORM": "땅 지렁이",
+        "EARTH_TURTLE": "어스 터틀",
+        "EARTH_WORM": "어스 웜",
         "ENT_WOOD": "엔트 우드",
-        "FIRE_WORM": "불 지렁이",
-        "FROG_SHAMAN": "개구리 주술사",
+        "FIRE_WORM": "파이어 웜",
+        "FROG_SHAMAN": "프로그 주술사",
         "GARGOYLE": "가고일",
         "GHOST": "고스트",
         "GOBLIN": "고블린",
         "GREEN_SLIME": "그린 슬라임",
         "GREY_WOLF": "회색 늑대",
-        "GROUND_DRAGON": "지룡",
-        "ICE_DRAGON": "빙룡",
+        "GROUND_DRAGON": "어스 드래곤",
+        "ICE_DRAGON": "아이스 드래곤",
         "ICE_LICH": "아이스 리치",
         "ICE_SKULKING": "아이스 스컬킹",
         "KOBOLT": "코볼트",
@@ -830,8 +830,8 @@ export function generateMonster(mapGrid) {
         "POISON_LICH": "포이즌 리치",
         "POISON_MUSHMAN": "독버섯",
         "POISON_SIDE": "포이즌 사이드",
-        "RAPTOR_ARCHER": "랩터 궁수",
-        "RAPTOR_WARRIOR": "랩터 전사",
+        "RAPTOR_ARCHER": "랩터 아처",
+        "RAPTOR_WARRIOR": "랩터 워리어",
         "RED_DRAGON": "레드 드래곤",
         "RED_OGRE": "레드 오우거",
         "RED_RIZARDMAN": "레드 리자드맨",
@@ -840,7 +840,7 @@ export function generateMonster(mapGrid) {
         "SKEL_WARRIOR": "해골 전사",
         "SKUL_LICH": "스컬 리치",
         "WEREWOLF": "웨어울프",
-        "WOOD_WARM": "나무 지렁이",
+        "WOOD_WARM": "우드 웜",
         "ZOMBIE": "좀비"
     };
 
@@ -858,16 +858,24 @@ export function generateMonster(mapGrid) {
 
     const tier = MONSTER_TIERS[tierKey];
 
-    const monsterInfo = MONSTER_TYPES[Math.floor(Math.random() * MONSTER_TYPES.length)];
+    // Filter MONSTER_TYPES based on the current biome
+    const availableMonstersInBiome = MONSTER_TYPES.filter(monster =>
+        monster.biomes && monster.biomes.includes(gameState.currentBiome)
+    );
+
+    // Fallback if no biome-specific monsters are defined, or if the currentBiome is not found
+    const finalMonsterPool = availableMonstersInBiome.length > 0 ? availableMonstersInBiome : MONSTER_TYPES;
+
+    const monsterInfo = finalMonsterPool[Math.floor(Math.random() * finalMonsterPool.length)];
     const monsterType = monsterInfo.name;
     const monsterArchetype = monsterInfo.archetype;
-    
+
     const translatedName = MONSTER_NAME_MAP[monsterType] || monsterType.replace(/_/g, ' ');
     const name = tier.name ? `${tier.name} ${translatedName}` : translatedName;
 
     const monsterLevel = isBoss ? Math.max(1, playerLevel + Math.floor(Math.random() * 8)) : Math.max(1, playerLevel + Math.floor(Math.random() * 7) - 3);
     const stats = generateMonsterStats(monsterLevel, isBoss, tier.stat_multiplier, monsterArchetype);
-    
+
     const levelDiff = monsterLevel - playerLevel;
     let threatScore = levelDiff + (tier.threat_bonus || 0);
     if (isBoss) threatScore += 15;
@@ -883,8 +891,8 @@ export function generateMonster(mapGrid) {
     if (isBoss) threatColor = '#ff00ff';
 
     const { x, y } = getRandomEmptyTile(mapGrid);
-    gameState.activeMonsters.push({ 
-        id: Date.now() + Math.random(), x, y, ...stats, 
+    gameState.activeMonsters.push({
+        id: Date.now() + Math.random(), x, y, ...stats,
         name: name,
         monsterType: monsterType,
         tier: tierKey,
@@ -956,7 +964,7 @@ export function generateMonsterStats(level, isBoss, multiplier, archetype) {
     }
 
     if (isBoss) { baseHp *= 2.5; baseAttack *= 1.8; baseDefense *= 1.8; }
-    
+
     const variance = (val) => val * (0.8 + Math.random() * 0.4);
     const maxHp = Math.floor(variance(baseHp) * multiplier);
 
@@ -979,7 +987,7 @@ export function gameOver() {
 
 export function startCombat(monster) {
     gameState.isInCombat = true;
-    gameState.currentCombatMonster = { ...monster, statusEffects: [] }; 
+    gameState.currentCombatMonster = { ...monster, statusEffects: [] };
 
     // Hide game container, show new Pokémon battle overlay
     gameContainer.classList.add('hidden');
@@ -987,7 +995,7 @@ export function startCombat(monster) {
 
     // Initialize the new battle UI
     initPokemonBattleUI(monster);
-    
+
     // Clear log and add initial message
     battleLog.innerHTML = '';
     logCombatMessage(`You encountered a ${monster.name}!`);
@@ -1008,7 +1016,7 @@ export function endCombat(wasVictory) {
             const goldAmount = calculateGoldDrop(gameState.currentCombatMonster);
             gameState.playerStats.base.gold += goldAmount;
             logCombatMessage(`<span style="color: gold;">You gained ${goldAmount} gold!</span>`);
-            updateStatusDisplay(); 
+            updateStatusDisplay();
 
             const monsterTierInfo = MONSTER_TIERS[gameState.currentCombatMonster.tier];
             const dropChance = ITEM_DROP_CHANCE + (monsterTierInfo.drop_rate_bonus || 0);
@@ -1039,7 +1047,7 @@ export function endCombat(wasVictory) {
                         logCombatMessage(`<span style="color: gold;">You found: </span><span style="color:${RARITY_CONFIG[newItem.rarity].color};">${newItem.name}</span>!`);
                     } else {
                         logCombatMessage("Your inventory is full! An item from the chest was lost.");
-                        break; 
+                        break;
                     }
                 }
             }
@@ -1066,7 +1074,7 @@ export function endCombat(wasVictory) {
 
 export function playerTurn() {
     setCombatButtonsEnabled(false);
-    
+
     // 방어 로직: currentCombatMonster가 null인 경우 턴 중단
     if (!gameState.currentCombatMonster) {
         // console.warn("playerTurn: currentCombatMonster is null. Aborting turn."); // 디버그 로그 제거
@@ -1088,7 +1096,7 @@ export function playerTurn() {
 
     gameState.currentCombatMonster.hp -= damage;
     gameState.currentCombatMonster.hp = Math.max(0, gameState.currentCombatMonster.hp);
-    
+
     let critString = isCritical ? ` <span style="color: red;">(CRIT!)</span>` : '';
     logCombatMessage(`You dealt ${damage} ${attackType} damage${critString}.`);
 
@@ -1105,7 +1113,7 @@ export function playerTurn() {
 export function monsterTurn() {
     processStatusEffects(gameState.playerStats);
     if (gameState.playerStats.base.hp <= 0) {
-        logCombatMessage("You were defeated by a status effect!"); 
+        logCombatMessage("You were defeated by a status effect!");
         setTimeout(gameOver, 1000);
         return;
     }
@@ -1184,7 +1192,7 @@ export function buyItem(item, merchantItemIndex) {
             gameState.wanderingMerchant.stock.splice(merchantItemIndex, 1);
 
             logCombatMessage(`<span style="color: green;">Bought ${item.name} for ${item.price} gold.</span>`);
-            
+
             // Re-render the merchant's stock to show the item has been removed
             renderMerchantStock(gameState.wanderingMerchant.stock, buyItem, showMerchantItemTooltip);
         } else {
@@ -1215,13 +1223,13 @@ export function sellItem(itemIndex) {
 export function calculateSellPrice(item) {
     let price = 0;
     if (item.rarity && RARITY_CONFIG[item.rarity]) {
-        price = RARITY_CONFIG[item.rarity].budget * 2; 
-    } 
+        price = RARITY_CONFIG[item.rarity].budget * 2;
+    }
     else if (item.price) {
         price = item.price;
     }
     else {
-        price = 10; 
+        price = 10;
     }
     return Math.floor(price / 2);
 }

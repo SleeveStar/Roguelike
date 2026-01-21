@@ -4,7 +4,7 @@ import { TILE_SIZE, ESCAPE_CHANCE, HEALING_BLOCK_RECOVERY_PERCENT } from './cons
 import { gameCanvas, inventoryBtn, closeInventoryBtn, closeMerchantBtn, allocateButtons, itemTooltipElement, bagGridElement, eqSlotElements, levelUpModal, closeLevelUpModal, inventoryOverlayElement, battleAttackBtn, battleAutoAttackBtn, battleRunAwayBtn } from './domElements.js';
 import { playerTurn, monsterTurn, startCombat, endCombat, allocateStatPoint, openMerchantUI, closeMerchantUI, equipItem, unequipItem, setCombatButtonsEnabled, hideLevelUpModal, toggleAutoAttack } from './gameLogic.js';
 import { logCombatMessage, toggleInventory, showItemTooltip, hideItemTooltip, renderBagGrid, renderEquipment, updateStatusDisplay, drawGame } from './ui.js';
-import { TILE_PROPERTIES } from './tiles.js';
+import { getCurrentActiveTileSet } from './imageLoader.js'; // Import getter for active tile set
 import { transitionMap } from './map.js';
 import { findPath } from './utils.js';
 
@@ -130,6 +130,10 @@ function handleKeyDown(event) {
     }
 
     // Check for walkable tiles
+    const activeTileSet = getCurrentActiveTileSet();
+    if (!activeTileSet) return; // Cannot check walkability if tile set is not loaded
+    const TILE_PROPERTIES = activeTileSet.TILE_PROPERTIES;
+
     const gridX = newX / TILE_SIZE;
     const gridY = newY / TILE_SIZE;
     const targetTile = gameState.mapGrid[gridY][gridX];
