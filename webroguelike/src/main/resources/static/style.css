@@ -64,7 +64,7 @@ h1 {
     color: var(--text-light);
     font-size: 0.9em; /* Increased font size */
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
-    max-height: 800px;
+    max-height: 850px;
     /* overflow-y: auto; -- Removed as per user request */
 }
 
@@ -237,6 +237,22 @@ canvas {
     box-shadow: 0 0 10px var(--accent-blue);
 }
 
+.action-btn#skillTreeBtn { /* Specific style for the inventory button */
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-grey);
+    color: var(--text-light);
+    padding: 8px 15px;
+}
+
+.action-btn#skillTreeBtn:hover {
+    background-color: rgba(var(--accent-blue-rgb), 0.2);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    transform: translateY(-1px);
+    box-shadow: 0 0 10px var(--accent-blue);
+}
+
+
 
 /* Info Panel Styles (previously Combat Panel) */
 #infoPanel {
@@ -252,7 +268,7 @@ canvas {
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
     display: flex;
     flex-direction: column;
-    max-height: 800px;
+    max-height: 850px;
 }
 
 #infoPanel h2 {
@@ -287,10 +303,6 @@ canvas {
     background-color: rgba(0,0,0,0.3);
     border-radius: 4px;
     min-height: 150px;
-}
-
-#side-panel-equipment .equipped-item-display {
-    font-size: 0.9em;
 }
 
 #side-panel-equipment .equipped-item-display .slot {
@@ -341,8 +353,7 @@ canvas {
     text-shadow: 1px 1px 3px black; /* Add shadow for readability */
     font-weight: bold;
     font-size: 0.9em;
-    pointer-events: none; /* Allow clicks to pass through to buttons if any */
-    z-index: 1; /* Ensure text is above the bar fill */
+    pointer-events: none;
 }
 
 /* Inventory Overlay Styles */
@@ -537,18 +548,21 @@ canvas {
 /* Item Tooltip Styles */
 #itemTooltip {
     position: fixed;
-    z-index: 110; /* Above inventory overlay */
-    background-color: var(--panel-bg);
-    border: 1px solid var(--border-grey);
+    z-index: 110;
+    background-color: rgba(25, 25, 25, 0.95); /* #skillTooltip에서 가져옴 */
+    border: 2px solid var(--accent-blue); /* #skillTooltip에서 가져옴 */
     border-radius: 5px;
     padding: 10px;
-    display: flex;
+    display: flex; /* 기본값은 row, 유지 */
     gap: 15px;
     font-size: 0.9em;
-    pointer-events: none; /* Let mouse events pass through */
-    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    pointer-events: none;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5); /* #skillTooltip에서 가져옴 */
     opacity: 0;
     transition: opacity 0.1s ease-in-out;
+    box-sizing: border-box;
+    max-width: 450px; /* 아이템 툴팁을 위해 적절한 최대 너비 설정 */
+    overflow-wrap: break-word; /* 텍스트 줄 바꿈 추가 */
 }
 
 #itemTooltip.hidden {
@@ -567,6 +581,7 @@ canvas {
     font-size: 1.1em;
     border-bottom: 1px solid var(--border-grey);
     padding-bottom: 5px;
+    text-align: left; /* 추가: 왼쪽 정렬 */
 }
 
 .tooltip-section .stat, .tooltip-section .affix {
@@ -698,7 +713,7 @@ canvas {
 
 .merchant-slot {
     width: 80px; /* Fixed width */
-    height: 80px; /* Fixed height */
+    height: 80px;
     border: 2px solid var(--border-grey);
     background-color: rgba(255, 255, 255, 0.05);
     display: flex;
@@ -918,14 +933,14 @@ canvas {
 /* New Item Tooltip Specific Styles */
 .item-unique-tag {
     font-weight: bold;
-    text-align: center;
+    text-align: left; /* 중앙 정렬에서 왼쪽 정렬로 변경 */
     margin-bottom: 5px;
     text-shadow: 0 0 5px currentColor;
 }
 
 .set-name {
     font-weight: bold;
-    text-align: center;
+    text-align: left; /* 중앙 정렬에서 왼쪽 정렬로 변경 */
     font-size: 1.2em;
     margin-bottom: 5px;
     text-shadow: 0 0 5px currentColor;
@@ -936,7 +951,7 @@ canvas {
     font-size: 0.85em;
     color: #bbb;
     margin-bottom: 10px;
-    text-align: center;
+    text-align: left; /* 중앙 정렬에서 왼쪽 정렬로 변경 */
 }
 
 .set-pieces-title, .set-bonuses-title {
@@ -946,12 +961,14 @@ canvas {
     border-bottom: 1px dashed rgba(255,255,255,0.1);
     padding-bottom: 3px;
     color: var(--accent-blue);
+    text-align: left; /* 추가: 왼쪽 정렬 */
 }
 
 .set-piece-item, .set-bonus-detail {
     font-size: 0.9em;
     margin-left: 5px;
     line-height: 1.4;
+    text-align: left; /* 추가: 왼쪽 정렬 */
 }
 
 /* Equipped Set Item Glow Effect */
@@ -963,4 +980,360 @@ canvas {
 
 .eq-slot.equipped.set-item-glow {
     animation: glowing-border 2s infinite alternate;
+}
+
+/* Skill Tree Modal Specific Styles */
+#skillTreeModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.85); /* Darker, more opaque background */
+    z-index: 100; /* Ensure it's above everything else */
+    display: flex; /* Use flexbox for centering */
+    align-items: center; /* Vertical center */
+    justify-content: center; /* Horizontal center */
+}
+
+.skill-tree-panel {
+    background-color: var(--panel-bg);
+    border: 2px solid var(--accent-blue);
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+    width: 90vw;
+    max-width: 1200px;
+    height: 90vh;
+    max-height: 900px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+#closeSkillTreeModal {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background-color: #dc3545; /* Red close button */
+    color: white;
+    border: none;
+    border-radius: 50%; /* Circular button */
+    width: 30px;
+    height: 30px;
+    font-size: 1.2em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#closeSkillTreeModal:hover {
+    background-color: #c82333;
+}
+
+.skill-tree-panel h2 {
+    text-align: center;
+    color: var(--accent-blue);
+    margin-bottom: 15px;
+    font-size: 2em;
+    text-shadow: 0 0 10px var(--accent-blue);
+}
+
+.skill-tree-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-grey);
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+.skill-tree-tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.tab-btn {
+    background-color: var(--panel-bg);
+    color: var(--text-light);
+    border: 1px solid var(--border-grey);
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1em;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover:not(.active) {
+    background-color: rgba(var(--accent-blue-rgb), 0.2);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.tab-btn.active {
+    background-color: var(--accent-blue);
+    color: var(--bg-dark);
+    border-color: var(--accent-blue);
+    cursor: default;
+    box-shadow: 0 0 10px rgba(var(--accent-blue-rgb), 0.5);
+}
+
+#skill-tree-area {
+    flex-grow: 1;
+    position: relative; /* For absolute positioning of skill nodes */
+    overflow-y: auto; /* Allow vertical scrolling */
+    overflow-x: hidden; /* Hide horizontal scrolling */
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+}
+
+/* Skill Node Styles */
+.skill-node {
+    position: absolute;
+    width: 70px; /* Size of skill icon */
+    height: 70px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 2px solid var(--border-grey);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8em; /* 폰트 크기 복원 */
+    color: var(--text-light);
+    cursor: pointer; /* 커서 복원 */
+    transition: all 0.2s;
+    user-select: none; /* Prevent text selection */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    padding: 5px; /* 패딩 복원 */
+}
+
+.skill-node img {
+    width: 40px; /* 이미지 크기 복원 */
+    height: 40px; /* 이미지 크기 복원 */
+    object-fit: contain;
+    margin-bottom: 2px;
+    border-radius: 5px;
+}
+
+.skill-node .skill-name {
+    font-size: 0.8em; /* 폰트 크기 복원 */
+    font-weight: bold;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.skill-node .skill-level {
+    font-size: 0.6em; /* 폰트 크기 복원 */
+    color: #ccc;
+}
+
+
+.skill-node.learned {
+    border-color: var(--accent-green);
+    background-color: rgba(139, 195, 74, 0.2);
+}
+
+.skill-node.max-level {
+    border-color: gold;
+    background-color: rgba(255, 215, 0, 0.2);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.skill-node.available {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 8px rgba(0, 188, 212, 0.5);
+    background-color: rgba(0, 188, 212, 0.2);
+}
+
+.skill-node.locked {
+    filter: grayscale(100%) brightness(50%);
+    cursor: not-allowed;
+    border-color: #555;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.skill-node:hover:not(.locked) {
+    transform: scale(1.05);
+    border-color: var(--text-light);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+}
+
+#skill-slot-bar-management {
+    display: flex;
+    flex-direction: row; /* 요소를 수평으로 정렬 */
+    justify-content: center; /* 중앙으로 정렬 */
+    align-items: center; /* 수직 중앙 정렬 */
+    gap: 10px; /* 슬롯 박스 간의 간격 */
+    padding: 10px 0; /* 상하 패딩 추가 */
+    margin-top: 15px; /* 스킬 트리와 분리 */
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+}
+
+.skill-slot-box {
+    width: 60px; /* Adjust size as needed */
+    height: 60px; /* Adjust size as needed */
+    border: 2px solid var(--border-grey); /* 명확한 테두리 */
+    background-color: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    font-size: 0.9em;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+    word-break: break-word;
+    padding: 2px;
+}
+
+.skill-slot-box:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent-blue);
+}
+
+.skill-slot-box.has-skill {
+    border-color: var(--accent-green); /* 스킬이 장착되면 테두리 색상 변경 */
+}
+
+/* 스킬 노드 블링크 애니메이션 */
+@keyframes skill-node-blink {
+    0% { box-shadow: 0 0 8px var(--accent-blue), 0 0 15px rgba(var(--accent-blue-rgb), 0.4); }
+    100% { box-shadow: 0 0 8px rgba(var(--accent-blue-rgb), 0.2), 0 0 15px rgba(var(--accent-blue-rgb), 0.1); }
+}
+
+/* 스킬 트리 연결선 캔버스 */
+.skill-tree-connection-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0; /* 노드들보다 뒤에 */
+    pointer-events: none; /* 캔버스 클릭 방지 */
+}
+
+/* 스킬 툴팁 스타일 (새로운 #skillTooltip ID에 적용) */
+#skillTooltip {
+    position: fixed;
+    z-index: 110; /* Above inventory overlay */
+    background-color: rgba(25, 25, 25, 0.95); /* itemTooltip.skill-tooltip에서 가져옴 */
+    border: 2px solid var(--accent-blue); /* itemTooltip.skill-tooltip에서 가져옴 */
+    border-radius: 5px; /* itemTooltip에서 가져옴 */
+    padding: 10px; /* itemTooltip에서 가져옴 */
+    display: flex; /* 명시적으로 flex 컨테이너 선언 (이전 itemTooltip.skill-tooltip에서 이동) */
+    flex-direction: column; /* itemTooltip.skill-tooltip에서 가져옴 */
+    gap: 8px; /* itemTooltip.skill-tooltip에서 가져옴 */
+    font-size: 0.9em; /* itemTooltip에서 가져옴 */
+    pointer-events: none; /* itemTooltip에서 가져옴 */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5); /* itemTooltip에서 가져옴 */
+    opacity: 0; /* itemTooltip에서 가져옴 */
+    transition: opacity 0.1s ease-in-out; /* itemTooltip에서 가져옴 */
+    box-sizing: border-box; /* itemTooltip.skill-tooltip에서 가져옴 */
+    
+    min-width: 0; /* itemTooltip.skill-tooltip에서 가져옴 */
+    max-width: 200px; /* itemTooltip.skill-tooltip에서 가져옴 */
+    overflow-wrap: break-word; /* itemTooltip.skill-tooltip에서 가져옴 */
+}
+
+#skillTooltip.hidden {
+    display: none;
+}
+
+/* 스킬 툴팁 내부의 직접적인 div 자식 요소에 적용 */
+#skillTooltip > div {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+
+
+.skill-tooltip-name {
+    font-size: 1.4em;
+    font-weight: bold;
+    color: var(--text-light);
+    text-align: left; /* 중앙 정렬에서 왼쪽 정렬로 변경 */
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    word-break: break-all;
+}
+
+.skill-tooltip-type {
+    font-size: 0.9em;
+    color: #bbb;
+    text-align: left; /* 중앙 정렬에서 왼쪽 정렬로 변경 */
+    margin-bottom: 5px;
+    word-break: break-all;
+}
+
+.skill-tooltip-level {
+    font-size: 1em;
+    font-weight: bold;
+    color: var(--accent-green);
+    margin-bottom: 5px;
+    word-break: break-all;
+    text-align: left; /* 추가: 왼쪽 정렬 */
+}
+
+.skill-tooltip-description, .skill-tooltip-next-description {
+    font-size: 0.9em;
+    color: #eee;
+    line-height: 1.4;
+    margin-bottom: 5px;
+    word-break: break-all;
+    text-align: left; /* 추가: 왼쪽 정렬 */
+}
+
+.skill-tooltip-next-level-title, .skill-tooltip-dependencies-title {
+    font-size: 1em;
+    font-weight: bold;
+    color: var(--accent-blue);
+    margin-top: 10px;
+    margin-bottom: 5px;
+    padding-bottom: 3px;
+    border-bottom: 1px dashed rgba(var(--accent-blue-rgb), 0.3);
+    word-break: break-all;
+    text-align: left; /* 추가: 왼쪽 정렬 */
+}
+
+.skill-tooltip-cost {
+    font-size: 0.9em;
+    color: gold;
+    margin-bottom: 5px;
+    word-break: break-all;
+    text-align: left; /* 추가: 왼쪽 정렬 */
+}
+
+.skill-tooltip-dependency {
+    font-size: 0.85em;
+    color: #aaa;
+    margin-left: 10px;
+    word-break: break-all;
+    text-align: left; /* 추가: 왼쪽 정렬 */
+}
+
+.skill-tooltip-dependency.met {
+    color: var(--accent-green);
+    font-weight: bold;
+}
+
+.skill-tooltip-dependency.unmet {
+    color: #c82333;
+    font-style: italic;
+}
+
+/* Blinking Skill Button Animation */
+@keyframes blink-animation {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+#skillTreeBtn.blinking {
+    animation: blink-animation 1s infinite;
+    border: 2px solid yellow; /* 반짝임을 시각적으로 강조 */
+    box-shadow: 0 0 10px yellow;
 }

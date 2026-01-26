@@ -1,0 +1,87 @@
+**Skill Tree Roadmap Plan (스킬 트리 로드맵 계획)**
+
+**1. 목표:**
+*   플레이어가 스킬 포인트를 사용하여 스킬 트리를 통해 스킬을 습득하고 강화할 수 있도록 한다.
+*   스킬 간의 계층적 관계를 시각적인 로드맵(선 연결)으로 표현하여 다음 스킬 습득 경로를 명확히 제시한다.
+*   스킬에 레벨 시스템을 도입하여 스킬 강화의 깊이를 더한다.
+
+**2. 핵심 개념:**
+
+*   **스킬 노드 (Skill Node):** 스킬 트리를 구성하는 개별 스킬.
+*   **스킬 레벨 (Skill Level):** 각 스킬이 가질 수 있는 레벨. 레벨이 오를수록 스킬의 효과가 강화되거나 새로운 속성이 해금된다.
+*   **스킬 포인트 (Skill Point):** 플레이어가 레벨업 시 획득하며 스킬 노드를 활성화하거나 스킬 레벨을 올리는 데 사용된다.
+*   **종속성 (Dependency):** 특정 스킬을 배우기 위해 선행되어야 하는 스킬. 시각적으로는 노드 간의 "선"으로 표현된다.
+*   **활성화 조건 (Activation Condition):** 스킬을 배우거나 레벨업하기 위한 조건 (예: 필요한 스킬 포인트, 선행 스킬 마스터 여부, 플레이어 레벨 등).
+
+**3. 주요 변경 사항 및 구현 계획:**
+
+**3.1. 데이터 모델 (`skills.js` 또는 유사 파일):**
+
+*   **스킬 구조 확장:** 각 스스킬 노드에 다음 속성 추가:
+    *   `id`: 스킬 고유 ID
+    *   `name`: 스킬 이름
+    *   `description`: 스킬 설명 (레벨별 설명 포함)
+    *   `type`: (Active/Passive)
+    *   `maxLevel`: 스킬의 최대 레벨.
+    *   `currentLevel`: 플레이어가 현재 보유한 스킬 레벨 (gameState에 저장).
+    *   `costPerLevel`: 해당 스킬의 1레벨을 올리는 데 필요한 스킬 포인트.
+    *   `dependencies`: (Array of Skill IDs) 이 스킬을 배우기 위해 선행되어야 하는 스킬 ID 목록. (예: `['basic_attack', 'power_strike']`). 각 종속성 스킬은 `maxLevel`에 도달해야 상위 스킬이 해금되도록 한다.
+    *   `position`: (x, y 좌표) UI 상에서 스킬 노드의 위치를 결정 (트리 레이아웃용).
+    *   `effects`: 스킬 레벨에 따른 효과 변화 (예: 데미지 증가, 쿨다운 감소 등).
+
+**3.2. 게임 상태 관리 (`gameState.js`):**
+
+*   `playerStats.base`에 `availableSkillPoints` 추가 (현재 보유 스킬 포인트).
+*   `playerStats.base.learnedSkills` (기존 배열)을 `playerStats.base.learnedSkills: { [skillId]: currentLevel }` 와 같은 Map 또는 Object 형태로 변경하여 각 스킬의 현재 레벨을 추적.
+
+**3.3. 게임 로직 (`gameLogic.js`):**
+
+*   **`learnSkill(skillId)` 함수 수정:**
+    *   기존: 단순히 `learnedSkills` 배열에 `skillId` 추가.
+    *   변경:
+        *   `skillId`에 해당하는 스킬의 `currentLevel`이 `maxLevel`보다 작은지 확인.
+        *   `availableSkillPoints`가 `costPerLevel`보다 큰지 확인.
+        *   모든 `dependencies` 스킬이 `maxLevel`에 도달했는지 확인.
+        *   조건 충족 시 `currentLevel`을 1 증가시키고 `availableSkillPoints` 감소.
+        *   스킬 레벨에 따른 효과 (예: `playerStats.derived` 업데이트 로직 호출).
+*   **레벨업 시 스킬 포인트 부여:** 플레이어 레벨업 시 `availableSkillPoints`를 증가시키는 로직 추가.
+
+**3.4. UI (`ui.js` 및 `domElements.js`):**
+
+*   **스킬 트리 렌더링 (`renderSkillTree`):**
+    *   각 스킬 노드 (div)를 생성.
+    *   노드 위치를 `skill.position.x`, `skill.position.y`를 사용하여 설정.
+    *   스킬 레벨 (예: "1/5")을 노드에 표시.
+    *   **연결 선 그리기:** HTML Canvas 또는 SVG를 사용하여 종속성 관계에 따라 스킬 노드 사이에 선을 그린다.
+        *   각 스킬 노드가 렌더링된 후, 해당 스킬의 `dependencies`를 확인하여 선행 스킬 노드까지 선을 그린다.
+        *   선행 스킬이 모두 마스터되었고 현재 스킬을 배울 수 있는 상태면 선을 밝은 색/점선 등으로 강조.
+*   **스킬 노드 클릭 이벤트:**
+    *   `learnSkill` 함수를 호출하여 스킬 레벨업을 시도.
+    *   레벨업 성공 시 UI (스킬 노드의 레벨, 색상, 연결 선 상태) 업데이트.
+*   **스킬 포인트 표시:** `skillPointsDisplay`에 `availableSkillPoints`를 실시간으로 표시.
+*   **스킬 툴팁 개선:** 스킬 상세 정보 (레벨별 효과, 다음 레벨 효과, 필요 조건)를 표시하는 툴팁 추가.
+*   **스킬 슬롯 관리 UI (`renderSkillSlotManagementBar`):**
+    *   `learnedSkills`에서 `type: 'active'` 스킬만 슬롯에 장착할 수 있도록 한다. (선택적)
+
+**3.5. 시각적 디자인 고려 사항:**
+
+*   **노드 상태 시각화:**
+    *   배운 스킬 (마스터): 완전히 활성화된 색상, 굵은 테두리.
+    *   배울 수 있는 스킬 (종속성 충족, 포인트 있음): 강조된 색상, 점선 테두리.
+    *   잠금 스킬 (종속성 미충족 또는 포인트 부족): 회색/어두운 색상, 자물쇠 아이콘 등.
+*   **연결 선 색상/스타일:**
+    *   활성화된 경로: 밝은 색, 실선.
+    *   잠금 경로: 어두운 색, 점선.
+*   **레이아웃:** 스킬 트리의 `position` 속성을 사용하여 시각적으로 깔끔하고 이해하기 쉬운 레이아웃을 구성해야 한다. (수동 설정 또는 자동 배치 알고리즘 고려).
+
+**4. 개발 단계:**
+
+1.  **데이터 모델 정의:** `skills.js`에서 스킬 구조 확장.
+2.  **`gameState.js` 업데이트:** `availableSkillPoints`, `learnedSkills` 구조 변경.
+3.  **`gameLogic.js`의 `learnSkill` 구현:** 스킬 레벨업 로직, 종속성 검사 추가.
+4.  **UI - 스킬 노드 렌더링:** `ui.js`에서 각 스킬 노드를 올바른 위치에 그리기.
+5.  **UI - 연결 선 그리기:** Canvas 또는 SVG를 사용하여 노드 간의 종속성 선 그리기.
+6.  **UI - 스킬 레벨업 상호작용:** 스킬 노드 클릭 시 `learnSkill` 호출 및 UI 업데이트.
+7.  **UI - 스킬 툴팁:** 레벨별 정보가 포함된 툴팁 구현.
+8.  **레벨업 시 스킬 포인트 부여 로직 추가.**
+9.  **테스트 및 디버깅:** 각 기능이 의도대로 동작하는지 확인.

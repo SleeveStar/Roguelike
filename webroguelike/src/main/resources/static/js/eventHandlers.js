@@ -1,9 +1,10 @@
 // eventHandlers.js
 import { gameState } from './gameState.js';
 import { TILE_SIZE, ESCAPE_CHANCE, HEALING_BLOCK_RECOVERY_PERCENT } from './constants.js';
-import { gameCanvas, inventoryBtn, closeInventoryBtn, closeMerchantBtn, allocateButtons, itemTooltipElement, bagGridElement, eqSlotElements, levelUpModal, closeLevelUpModal, inventoryOverlayElement, battleAttackBtn, battleAutoAttackBtn, battleRunAwayBtn } from './domElements.js';
-import { playerTurn, monsterTurn, startCombat, endCombat, allocateStatPoint, openMerchantUI, closeMerchantUI, equipItem, unequipItem, setCombatButtonsEnabled, hideLevelUpModal, toggleAutoAttack } from './gameLogic.js';
-import { logCombatMessage, toggleInventory, showItemTooltip, hideItemTooltip, renderBagGrid, renderEquipment, updateStatusDisplay, drawGame } from './ui.js';
+import { gameCanvas, inventoryBtn, closeInventoryBtn, closeMerchantBtn, allocateButtons, itemTooltipElement, bagGridElement, eqSlotElements, skillTreeModal, closeSkillTreeModal, skillTreeBtn, inventoryOverlayElement, battleAttackBtn, battleAutoAttackBtn, battleRunAwayBtn } from './domElements.js'; // Updated DOM element imports
+import { playerTurn, monsterTurn, startCombat, endCombat, allocateStatPoint, openMerchantUI, closeMerchantUI, equipItem, unequipItem, setCombatButtonsEnabled, toggleAutoAttack } from './gameLogic.js'; // Removed hideLevelUpModal
+import { logCombatMessage, toggleInventory, showItemTooltip, hideItemTooltip, renderBagGrid, renderEquipment, updateStatusDisplay, drawGame, showSkillTreeModal, updateSkillTreeButtonState } from './ui.js'; // Added showSkillTreeModal, updateSkillTreeButtonState
+
 import { getCurrentActiveTileSet } from './imageLoader.js'; // Import getter for active tile set
 import { transitionMap } from './map.js';
 import { findPath } from './utils.js';
@@ -98,10 +99,16 @@ export function addEventListeners() {
         slotElement.addEventListener('mouseleave', hideItemTooltip);
     });
 
-    // Level up modal buttons
-    closeLevelUpModal.addEventListener('click', () => {
-        hideLevelUpModal();
+    // Skill Tree modal buttons
+    skillTreeBtn.addEventListener('click', () => {
+        gameState.isUiVisible = true;
+        showSkillTreeModal(); // Defined in ui.js
+    });
+    closeSkillTreeModal.addEventListener('click', () => {
+        gameState.isUiVisible = false;
+        skillTreeModal.classList.add('hidden'); // Close the modal
         drawGame(); // Redraw the game to reflect the new state
+        updateSkillTreeButtonState(); // Update blinking state after closing
     });
 
     // The restart button is no longer needed as gameOver() performs a full page reload.
@@ -119,6 +126,10 @@ function handleKeyDown(event) {
         case 'ArrowDown': newY += TILE_SIZE; break;
         case 'ArrowLeft': newX -= TILE_SIZE; break;
         case 'ArrowRight': newX += TILE_SIZE; break;
+        case '1': useSkill(0); return; // Use skill in slot 0
+        case '2': useSkill(1); return; // Use skill in slot 1
+        case '3': useSkill(2); return; // Use skill in slot 2
+        case '4': useSkill(3); return; // Use skill in slot 3
         default: return;
     }
 

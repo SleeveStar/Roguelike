@@ -19,6 +19,15 @@ export const gameState = {
             vitality: 5,
             mentality: 5,
             luck: 5,
+            availableSkillPoints: 1, // 초기 스킬 포인트 1로 설정
+            learnedSkills: {         // 배운 스킬 ID와 레벨을 매핑하는 객체
+                "powerStrike": 1, // powerStrike 레벨 1로 시작
+                "fireball": 1     // fireball 레벨 1로 시작
+            },
+            skillSlots: {            // 액티브 스킬 슬롯
+                max: 4,
+                slots: ["powerStrike", "fireball", null, null] // 초기 슬롯에 스킬 할당
+            },
         },
         derived: {},
         inventory: [],
@@ -45,6 +54,7 @@ export const gameState = {
     biomeRepeatStreak: 0,
     mapExits: { up: null, down: null, left: null, right: null },
     exitTiles: [],
+    skillCooldowns: {}, // 플레이어 스킬 쿨다운 관리
 };
 
 export let isInventoryOpen = false;
@@ -66,6 +76,15 @@ export function resetGameState() {
             vitality: 5,
             mentality: 5,
             luck: 5,
+            availableSkillPoints: 1,
+            learnedSkills: {
+                "powerStrike": 1,
+                "fireball": 1
+            },
+            skillSlots: {
+                max: 4,
+                slots: ["powerStrike", "fireball", null, null]
+            },
         },
         derived: {},
         inventory: [],

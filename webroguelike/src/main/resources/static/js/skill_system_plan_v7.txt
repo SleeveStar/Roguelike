@@ -1,0 +1,364 @@
+# 스킬 시스템 도입 상세 계획서 (v7 - 통합 및 고도화)
+
+## 1. 개요
+
+이 문서는 Web Roguelike 프로젝트에 **플레이어의 스킬 트리 시스템**과 **몬스터의 스킬 사용 시스템**을 도입하기 위한 종합 계획을 상세히 기술합니다. **액티브 스킬은 마나(MP)를 소모하며, 그 위력은 시전자의 현재 스탯(능력치), 장비, 패시브 스킬의 영향을 받아 계수(coefficient) 기반으로 계산되도록 설계하여, 캐릭터 성장, 장비, 패시브 스킬에 따른 스킬 강화 효과가 전투에서 명확히 체감되도록 합니다.**
+
+-   **플레이어**:  
+    레벨업 시 스킬 포인트를 획득합니다. 스킬 트리는 왼쪽 스테이터스 창의 **‘스킬’ 버튼을 클릭**하여 접근하며, 이곳에서 **‘근접’, ‘마법’, ‘원거리’** 특성으로 나뉜 스킬 트리에서 패시브 또는 액티브 스킬을 배울 수 있습니다.  
+    **잔여 스킬 포인트가 있을 경우 ‘스킬’ 버튼이 반짝여** 사용자에게 이를 시각적으로 알립니다.  
+    습득한 액티브 스킬은 **드래그 앤 드롭 방식**으로 전투 스킬 슬롯에 장착하여 사용합니다.
+
+-   **몬스터**:  
+    각 몬스터는 자신의 개성에 맞는 고유 스킬을 보유하며, 전투 중 **낮은 확률 또는 전투 상황에 따른 판단**으로 일반 공격 대신 스킬을 사용합니다.  
+    몬스터 스킬 또한 **몬스터의 현재 스탯에 연동되어 위력이 결정**됩니다.
+
+이 계획은 플레이어의 성장 전략, 빌드 다양성, 전투의 긴장감과 예측 불가능성을 극대화하는 것을 목표로 합니다.
+
+---
+
+## 2. 플레이어 스킬 시스템
+
+### 2.1. 데이터 구조 설계
+
+#### A. `skills.js` (신규 생성 및 구조 확장)
+
+플레이어의 스킬 트리를 구성하기 위해 스킬 정의를 구체화합니다. 모든 액티브 스킬은 **계수(coefficient) 기반 설계**를 적용하여, 공통적인 데미지 계산 구조 안에서 스탯 연동 효과가 일관되게 적용되도록 합니다. 패시브 스킬은 `applyOrder` 속성을 통해 적용 순서를 명시하여 종속적인 스탯 변화를 올바르게 처리합니다.
+
+-   **플레이어 스킬 예시 (`SKILLS`)**:
+    ```javascript
+    export const SKILLS = {
+        "powerStrike": {
+            id: "powerStrike",
+            name: "강타",
+            type: "active", // 'active' 또는 'passive'
+            tree: "melee", // 'melee', 'magic', 'ranged'
+            cost: 10, // 이 스킬 사용에 필요한 MP (마나) 소모량
+            cooldown: 3, // 스킬 사용 후 재사용 대기 턴 수
+            dependencies: [], // 선행 스킬 id 배열 (예: ["skillId1", "skillId2"])
+            position: { x: 0, y: 0 }, // 스킬 트리 UI에서의 상대적 좌표
+            icon: "img/skills/power_strike.png", // 스킬 아이콘 경로
+            description: "적에게 강력한 물리 피해를 입힙니다.",
+            coefficient: 1.5, // 시전자의 물리 공격력에 곱해질 계수
+            effect: (caster, target) => {
+                // 시전자(caster)의 현재 스탯(derived.physicalAttack)과 coefficient에 비례하여 데미지 계산
+                const damage = caster.derived.physicalAttack * SKILLS.powerStrike.coefficient;
+                target.hp -= damage;
+                return `${target.name}에게 ${damage.toFixed(0)}의 물리 피해를 입혔다!`;
+            }
+        },
+
+        "meleeMastery": {
+            id: "meleeMastery",
+            name: "근접 숙련",
+            type: "passive",
+            tree: "melee",
+            dependencies: ["powerStrike"],
+            position: { x: 0, y: 1 },
+            icon: "img/skills/melee_mastery.png",
+            description: "모든 물리 공격력이 5% 증가합니다.",
+            applyOrder: 2, // 패시브 스킬 적용 순서 (낮은 숫자부터 적용)
+            effect: (derivedStats) => {
+                // 패시브 스킬은 시전자의 파생 스탯(derivedStats)을 직접 수정
+                derivedStats.physicalAttack = Math.floor(
+                    derivedStats.physicalAttack * 1.05
+                );
+            }
+        },
+
+        "fireball": {
+            id: "fireball",
+            name: "화염구",
+            type: "active",
+            tree: "magic",
+            cost: 15,
+            cooldown: 4,
+            dependencies: [],
+            position: { x: 0, y: 0 },
+            icon: "img/skills/fireball.png",
+            description: "적에게 강력한 화염 마법 피해를 입힙니다.",
+            coefficient: 1.8, // 시전자의 마법 공격력에 곱해질 계수
+            effect: (caster, target) => {
+                // 시전자(caster)의 현재 마법 공격력(derived.magicalAttack)과 coefficient에 비례하여 데미지 계산
+                const damage = caster.derived.magicalAttack * SKILLS.fireball.coefficient;
+                target.hp -= damage;
+                return `${target.name}에게 ${damage.toFixed(0)}의 마법 피해를 입혔다!`;
+            }
+        }
+    };
+    ```
+
+#### B. `gameState.js` (상태 확장)
+
+-   `playerStats.base` 객체에 다음 항목을 추가합니다.
+    -   `availableSkillPoints`: 레벨업 시 획득하는 스킬 포인트.
+    -   `learnedSkills`: 플레이어가 습득한 스킬 ID 목록.
+    -   `skillSlots`: 전투에서 사용할 액티브 스킬 슬롯 정보를 포함하는 객체.
+        ```javascript
+        skillSlots: {
+            max: 4, // 최대 스킬 슬롯 개수
+            slots: [null, null, null, null] // 각 슬롯에 장착된 스킬의 ID
+        }
+        ```
+-   `gameState` 루트에 플레이어 스킬 쿨다운 관리용 객체를 유지합니다.
+    ```javascript
+    skillCooldowns: {} // { "skillId": 3, ... } 형태
+    ```
+
+---
+
+### 2.2. UI 구현
+
+#### A. `index.html` (스킬 트리 모달 및 버튼 추가)
+
+1.  **'스킬' 버튼 추가**: 왼쪽 `playerStatus` 패널의 `player-actions` div 내에 '스킬' 버튼을 추가합니다.
+    ```html
+    <!-- In index.html, inside #playerStatus -> .player-actions -->
+    <div class="player-actions">
+        <button id="inventoryBtn" class="action-btn">인벤토리</button>
+        <button id="skillTreeBtn" class="action-btn">스킬</button> <!-- 새로 추가될 버튼 -->
+    </div>
+    ```
+2.  **스킬 트리 모달 ID 변경**: 기존 `levelUpModal`의 ID를 `skillTreeModal`로 변경합니다.
+3.  **모달 닫기 버튼 ID 변경**: `closeLevelUpModal`의 ID를 `closeSkillTreeModal`로 변경합니다.
+    ```html
+    <!-- In index.html, locate the modal (was #levelUpModal) -->
+    <div id="skillTreeModal" class="modal hidden"> <!-- ID 변경 -->
+        <div class="modal-content skill-tree-modal">
+            <button id="closeSkillTreeModal" class="close-btn">X</button> <!-- ID 변경 -->
+            <h2>
+                스킬 트리 (사용 가능 스킬 포인트:
+                <span id="skillPointsDisplay">0</span>)
+            </h2>
+            <!-- ... (나머지 스킬 트리 UI 내용은 그대로 유지) ... -->
+        </div>
+    </div>
+    ```
+
+#### B. `ui.js` (스킬 트리 및 드래그 앤 드롭 로직)
+
+-   **`showSkillTreeModal()` (유지)**: 이 함수는 스킬 트리 모달을 표시하는 역할을 합니다.
+-   **새로운 이벤트 리스너 추가**: `addEventListeners()` 함수에서 새로 추가된 `skillTreeBtn`에 클릭 이벤트를 연결합니다.
+    ```javascript
+    // In eventHandlers.js, inside addEventListeners()
+    import { skillTreeBtn, closeSkillTreeModal, skillTreeModal } from './domElements.js'; // domElements.js에도 추가 필요
+
+    skillTreeBtn.addEventListener('click', () => {
+        gameState.isUiVisible = true;
+        skillTreeModal.classList.remove('hidden'); // 모달 표시
+        // 모달을 열 때 스킬 포인트 디스플레이 업데이트 및 스킬 트리 렌더링
+        document.getElementById('skillPointsDisplay').textContent = gameState.playerStats.base.availableSkillPoints;
+        renderSkillTree('melee'); // 기본적으로 근접 트리 표시
+    });
+    closeSkillTreeModal.addEventListener('click', () => {
+        gameState.isUiVisible = false;
+        skillTreeModal.classList.add('hidden');
+        drawGame(); // 게임 화면을 다시 그려 UI 상태를 갱신
+        updateSkillTreeButtonState(); // 모달 닫을 때 버튼 상태 갱신
+    });
+    ```
+-   **`domElements.js` 업데이트**: 새로 추가된 `skillTreeBtn`, `skillTreeModal`, `closeSkillTreeModal`에 대한 DOM 요소 참조를 추가해야 합니다.
+-   `renderSkillTree()`: 스킬 노드 렌더링 시 `position` 속성을 활용하며, 스킬 배움 여부, 쿨다운, 마나 코스트 등을 시각적으로 표시합니다.
+-   `renderSkillSlotManagementBar()`: 슬롯 UI 갱신 로직을 구현합니다.
+-   드래그 앤 드롭을 통해 `gameState.skillSlots.slots` 관리 로직을 구현합니다.
+
+#### C. `style.css` (스킬 버튼 반짝임 애니메이션 추가)
+
+-   `skillTreeBtn`에 적용할 반짝임 애니메이션 CSS를 추가합니다.
+    ```css
+    /* style.css */
+    @keyframes blink-animation {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    #skillTreeBtn.blinking { /* ID 대신 클래스를 사용할 경우 .blinking */
+        animation: blink-animation 1s infinite;
+        border: 2px solid yellow; /* 반짝임을 시각적으로 강조 */
+        box-shadow: 0 0 10px yellow;
+    }
+    ```
+
+#### D. `ui.js` (스킬 버튼 반짝임 로직 추가)
+
+-   **`updateSkillTreeButtonState()` 함수 (신규)**:
+    ```javascript
+    // ui.js
+    import { skillTreeBtn } from './domElements.js'; // skillTreeBtn 참조 필요
+
+    export function updateSkillTreeButtonState() {
+        if (skillTreeBtn) { // 버튼이 존재할 경우에만 처리
+            if (gameState.playerStats.base.availableSkillPoints > 0) {
+                skillTreeBtn.classList.add('blinking');
+            } else {
+                skillTreeBtn.classList.remove('blinking');
+            }
+        }
+    }
+    ```
+-   **`updateSkillTreeButtonState()` 호출 지점**:
+    -   `gameLogic.js`의 `levelUp()` 함수: 스킬 포인트를 얻었을 때 호출.
+    -   `gameLogic.js`의 `learnSkill()` 함수: 스킬 포인트를 사용했을 때 호출.
+    -   게임 초기화 시 (`main.js` 로드 후): `updateSkillTreeButtonState()`를 초기 상태로 한번 호출.
+    -   스킬 트리 모달을 닫을 때: `closeSkillTreeModal` 이벤트 리스너에서 호출하여 상태를 갱신.
+
+---
+
+### 2.3. 핵심 로직 구현
+
+#### A. `gameLogic.js` (스킬 습득 및 플레이어 스킬 사용/패시브 적용)
+
+-   `levelUp()`:
+    -   **더 이상 `showSkillTreeModal()`을 직접 호출하지 않습니다.**
+    -   `gameState.playerStats.base.availableSkillPoints++`를 실행합니다.
+    -   플레이어가 스킬 포인트를 얻었음을 알리는 전투 로그 메시지를 추가합니다. (예: `logCombatMessage("<span style='color: yellow;'>새로운 스킬 포인트를 획득했습니다! '스킬' 버튼을 확인하세요.</span>");`)
+    -   `ui.updateSkillTreeButtonState()`를 호출하여 '스킬' 버튼의 반짝임 상태를 업데이트합니다.
+
+-   `learnSkill(skillId)`:
+    1.  `SKILLS`에서 `skillId`에 해당하는 스킬 데이터를 로드합니다.
+    2.  플레이어의 `availableSkillPoints`와 스킬의 `dependencies` (선행 스킬) 조건을 확인합니다.
+    3.  모든 조건을 충족하면, `availableSkillPoints`를 차감하고 `gameState.playerStats.base.learnedSkills`에 `skillId`를 추가합니다.
+    4.  배운 스킬이 **패시브**일 경우, `recalculateDerivedStats()`를 즉시 호출하여 변경된 스탯을 반영합니다.
+    5.  스킬 트리 UI를 갱신하여 배운 스킬 상태를 표시합니다.
+    6.  `ui.updateSkillTreeButtonState()`를 호출하여 '스킬' 버튼의 반짝임 상태를 업데이트합니다.
+
+-   `useSkill(skillId, target)` (플레이어 액티브 스킬 사용):
+    1.  `SKILLS`에서 `skillId`에 해당하는 스킬 데이터를 로드합니다.
+    2.  **마나(MP) 확인 및 소모**: `gameState.playerStats.base.mp`가 `skill.cost`보다 적으면 스킬 사용 실패. 충분하면 MP를 `skill.cost`만큼 차감합니다.
+    3.  **쿨다운(Cooldown) 확인**: `gameState.skillCooldowns[skillId]`가 0보다 크면 스킬 사용 실패.
+    4.  **스킬 효과 적용 (스탯 연동)**: 스킬의 `effect(gameState.playerStats, target)` 함수를 호출합니다. 이 때 `caster` 인자로 플레이어의 모든 스탯 정보(`derived` 포함)를 넘겨주므로, 스킬 효과는 플레이어의 현재 `derived` 스탯(물리 공격력, 마법 공격력 등)에 비례하여 강력하게 적용됩니다.
+    5.  **쿨다운 설정**: `gameState.skillCooldowns[skillId]`에 `skill.cooldown` 값을 설정합니다.
+    6.  결과를 전투 로그에 출력하고, 몬스터의 턴으로 넘깁니다.
+
+-   `recalculateDerivedStats()`:
+    -   기본 스탯 및 장비 효과에 따른 파생 스탯 계산 로직을 수행합니다.
+    -   이후, `gameState.playerStats.base.learnedSkills`를 순회하며 `type`이 'passive'인 스킬들의 `effect` 함수를 `applyOrder` 속성을 기준으로 **정렬된 순서대로** 호출합니다.
+    -   이 과정을 통해 패시브 스킬의 스탯 증가/변화 효과가 `derived` 스탯에 올바르게 반영됩니다. 이렇게 최신화된 `derived` 스탯은 액티브 스킬의 `effect` 함수에 전달되어 스킬 위력 연동의 기반이 됩니다.
+
+---
+
+## 3. 몬스터 스킬 시스템
+
+### 3.1. 데이터 구조 설계
+
+#### A. `skills.js` (몬스터 스킬 추가)
+
+플레이어 스킬과 별개로, 몬스터 전용 스킬 객체를 정의하여 `export` 합니다. 몬스터 스킬은 별도의 MP 자원 관리 없이 주로 쿨다운 기반으로 동작합니다. 몬스터 스킬 또한 `coefficient`와 같은 속성을 포함하여 몬스터의 스탯에 따라 위력이 연동되도록 설계합니다.
+
+-   **몬스터 스킬 예시 (`MONSTER_SKILLS`)**:
+    ```javascript
+    export const MONSTER_SKILLS = {
+        "poisonSpit": {
+            id: "poisonSpit",
+            name: "독 뱉기",
+            cooldown: 4, // 몬스터 스킬의 재사용 대기 턴 수
+            description: "플레이어를 중독시켜 지속 피해를 입힙니다.",
+            coefficient: 0.5, // 몬스터 마법 공격력에 곱해질 계수
+            effect: (caster, target) => {
+                // applyStatusEffect 및 logCombatMessage 함수는 gameLogic.js 또는 ui.js에서 import 해야 합니다.
+                // applyStatusEffect(target, { type: 'poison', duration: 3, magnitude: caster.magicalAttack * MONSTER_SKILLS.poisonSpit.coefficient });
+                // logCombatMessage(`${caster.name}이(가) ${target.name || '플레이어'}에게 독을 뱉습니다!`);
+            }
+        },
+        "frenzy": {
+            id: "frenzy",
+            name: "광란",
+            cooldown: 5,
+            description: "일정 시간 동안 자신의 공격력을 증가시킵니다.",
+            coefficient: 1.5, // 광란 시 공격력 계수
+            effect: (caster, target) => { // 몬스터 자신(caster)에게 버프 적용
+                // applyStatusEffect 및 logCombatMessage 함수는 gameLogic.js 또는 ui.js에서 import 해야 합니다.
+                // applyStatusEffect(caster, { type: 'berserk', duration: 3, magnitude: MONSTER_SKILLS.frenzy.coefficient });
+                // logCombatMessage(`${caster.name}이(가) 광란 상태에 빠집니다!`);
+            }
+        }
+    };
+    ```
+
+#### B. `constants.js` (몬스터와 스킬 연결)
+
+`MONSTER_TYPES` 배열의 각 몬스터 객체에 보유 스킬 목록을 추가합니다.
+
+-   **수정 예시**:
+    ```javascript
+    // In constants.js
+    export const MONSTER_TYPES = [
+        { name: "POISON_MUSHMAN", archetype: "caster", biomes: ["FOREST"], skills: ["poisonSpit"] },
+        { name: "WEREWOLF", archetype: "bruiser", biomes: ["FOREST"], skills: ["frenzy"] },
+        // ...
+    ];
+    ```
+
+---
+
+### 3.2. 핵심 로직 구현
+
+#### A. `gameState.js` (몬스터 전투 상태 추가)
+
+전투 중인 몬스터의 스킬 쿨다운을 추적하기 위해 `currentCombatMonster` 객체를 확장합니다.
+
+-   **`gameLogic.js`의 `startCombat` 함수 내에서**:
+    -   `gameState.currentCombatMonster`를 생성할 때 `skillCooldowns: {}` 속성을 추가합니다.
+    -   해당 몬스터가 가진 모든 스킬을 `skillCooldowns` 객체에 `0`으로 초기화합니다.
+
+-   **수정 예시**:
+    ```javascript
+    // In gameLogic.js, inside startCombat(monster)
+    const monsterDefinition = MONSTER_TYPES.find(m => m.name === monster.monsterType);
+    const initialCooldowns = {};
+    if (monsterDefinition && monsterDefinition.skills) {
+        monsterDefinition.skills.forEach(skillId => {
+            initialCooldowns[skillId] = 0;
+        });
+    }
+    // currentCombatMonster의 기본 스탯에 skillCooldowns를 추가
+    gameState.currentCombatMonster = { ...monster, statusEffects: [], skillCooldowns: initialCooldowns };
+    ```
+
+#### B. `gameLogic.js` (몬스터 턴 로직 수정)
+
+`monsterTurn()` 함수를 수정하여 스킬 사용 로직을 추가합니다.
+
+-   **`monsterTurn()` 수정 제안**:
+    1.  **몬스터 상태 업데이트**: 몬스터의 상태 이상(`statusEffects`)을 처리합니다.
+    2.  **쿨다운 감소**: `gameState.currentCombatMonster.skillCooldowns`에 있는 모든 스킬의 쿨다운을 1씩 감소시킵니다.
+    3.  **스킬 사용 결정**: `const SKILL_CHANCE = 0.25;` (예: 25%) 와 같이 낮은 확률로 스킬을 시도할지 결정합니다. 또는, 몬스터의 현재 HP, 플레이어의 상태 등 **전략적 판단 로직**을 추가하여 스킬 사용 여부를 결정할 수도 있습니다.
+    4.  **사용 가능 스킬 필터링**: 몬스터의 `MONSTER_TYPES`에 정의된 스킬 중 현재 쿨다운이 0인 스킬 목록을 추립니다.
+    5.  **스킬 선택 및 실행**:
+        -   사용 가능한 스킬이 있고 스킬 사용 결정 확률을 통과했다면, 목록에서 무작위 또는 **우선순위에 따라** 하나를 선택합니다.
+        -   `MONSTER_SKILLS`에서 해당 스킬의 `effect(gameState.currentCombatMonster, gameState.playerStats)` 함수를 호출합니다. 이 때 **몬스터의 `physicalAttack`, `magicalAttack` 등 현재 스탯에 비례하여 스킬 효과가 적용됩니다.**
+        -   사용한 스킬의 쿨다운을 `gameState.currentCombatMonster.skillCooldowns`에 설정합니다.
+        -   결과를 전투 로그에 출력하고, 플레이어의 턴으로 넘깁니다.
+    6.  **일반 공격**: 스킬을 사용하지 않기로 결정했거나, 사용할 수 있는 스킬이 없는 경우 기존의 일반 공격 로직(`calculateDamage`)을 수행합니다.
+
+---
+
+## 4. 통합 실행 계획 요약
+
+1.  **1단계 (데이터/UI 기반)**:
+    -   `skills.js`에 `SKILLS` (플레이어) 및 `MONSTER_SKILLS` (몬스터) 데이터 구조 정의. `coefficient` 및 `applyOrder` 속성 포함.
+    -   `constants.js`의 `MONSTER_TYPES`에 스킬 ID 배열 추가.
+    -   `gameState.js`에 플레이어 스킬 관련 상태 (`availableSkillPoints`, `learnedSkills`, `skillSlots` 객체) 및 몬스터 쿨다운 상태 추가.
+    -   `index.html`에 **'스킬' 버튼 추가 및 스킬 트리 모달 ID/닫기 버튼 ID 변경**.
+
+2.  **2단계 (플레이어 UI 로직 구현)**:
+    -   `domElements.js`에 새 DOM 요소 참조 추가.
+    -   `eventHandlers.js`에 **'스킬' 버튼 이벤트 리스너 추가**.
+    -   `ui.js`에 `showSkillTreeModal`, `renderSkillTree`, `renderSkillSlotManagementBar` 구현 (스킬 계수, 쿨다운, 마나 코스트 등 표시).
+    -   **`style.css`에 '스킬' 버튼 반짝임 애니메이션 CSS 추가.**
+    -   **`ui.js`에 `updateSkillTreeButtonState()` 함수 구현 및 적절한 시점에 호출.**
+
+3.  **3단계 (플레이어 핵심 로직 구현)**:
+    -   `gameLogic.js`에서 `levelUp` (모달 자동 호출 제거, 스킬 포인트 부여), `learnSkill` (스킬 포인트 소모, 선행 조건 확인, 패시브 즉시 적용), `useSkill` (마나/스탯 연동), `recalculateDerivedStats` (패시브 스킬 `applyOrder`에 따라 적용) 기능 구현.
+    -   `gameLogic.js`의 `levelUp` 및 `learnSkill` 함수에서 `ui.updateSkillTreeButtonState()` 호출.
+
+4.  **4단계 (몬스터 핵심 로직 구현)**:
+    -   `gameLogic.js`의 `startCombat`에서 몬스터 쿨다운 초기화 로직 추가.
+    -   `gameLogic.js`의 `monsterTurn`을 스킬 사용/판단 (스탯 연동, 쿨다운 관리, 전략적 판단 선택 가능) 로직을 포함하도록 수정.
+
+5.  **5단계 (연동 및 최종 테스트)**:
+    -   '스킬' 버튼 클릭 -> 스킬 트리 모달 열기 -> 스킬 습득 -> 장착 -> 전투 사용까지 전체 흐름 테스트.
+    -   **잔여 스킬 포인트 존재 시 '스킬' 버튼이 반짝이는지 확인 및 검증.**
+    -   전투에서 몬스터가 실제로 스킬을 사용하는지, 쿨다운이 정상적으로 적용되는지 확인.
+    -   플레이어/몬스터 스킬이 스탯에 따라 위력이 변화하는지 검증.
+    -   패시브 스킬의 `applyOrder`가 올바르게 작동하는지 확인.

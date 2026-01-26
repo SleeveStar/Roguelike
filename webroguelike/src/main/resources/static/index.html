@@ -61,6 +61,7 @@
             
             <div class="player-actions">
                 <button id="inventoryBtn" class="action-btn">인벤토리</button>
+                <button id="skillTreeBtn" class="action-btn">스킬</button> <!-- 새로 추가될 버튼 -->
             </div>
         </div>
         <canvas id="gameCanvas"></canvas>
@@ -143,13 +144,38 @@
         </div>
     </div>
 
-    <div id="levelUpModal" class="modal hidden">
-        <div class="modal-content">
-            <h2>레벨 업!</h2>
-            <p>레벨이 올랐습니다! 스탯 포인트를 분배하세요:</p>
-            <div class="stat-allocation hidden">
+    <div id="skillTooltip" class="hidden">
+        <!-- Skill tooltip content will be rendered here -->
+    </div>
+
+    <div id="skillTreeModal" class="modal hidden"> <!-- ID 변경 -->
+        <div class="modal-content skill-tree-panel">
+            <button id="closeSkillTreeModal">X</button> <!-- ID 변경 -->
+            <h2>
+                스킬 트리 (사용 가능 스킬 포인트:
+                <span id="skillPointsDisplay">0</span>)
+            </h2>
+            
+            <div class="skill-tree-container">
+                <div class="skill-tree-tabs">
+                    <button class="tab-btn active" data-tree="melee">근접</button>
+                    <button class="tab-btn" data-tree="magic">마법</button>
+                    <button class="tab-btn" data-tree="ranged">원거리</button>
+                </div>
+                <div id="skill-tree-area">
+                    <!-- 스킬 아이콘들이 동적으로 여기에 그려짐 -->
+                </div>
             </div>
-            <button id="closeLevelUpModal">계속</button>
+
+            <div class="skill-slot-management">
+                <h3>전투 스킬 슬롯 (드래그하여 장착)</h3>
+                <div id="skill-slot-bar-management">
+                    <div class="skill-slot-box" data-slot-index="0">1</div>
+                    <div class="skill-slot-box" data-slot-index="1">2</div>
+                    <div class="skill-slot-box" data-slot-index="2">3</div>
+                    <div class="skill-slot-box" data-slot-index="3">4</div>
+                </div>
+            </div>
         </div>
     </div>
 
