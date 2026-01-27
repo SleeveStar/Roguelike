@@ -1,6 +1,6 @@
 // ui.js
 import { gameState } from './gameState.js';
-import { learnSkill, equipSkillToSlot, useSkill, playerTurn, monsterTurn, setCombatButtonsEnabled, endCombat } from './gameLogic.js'; // Import gameLogic functions
+import { learnSkill, equipSkillToSlot, useSkill, playerTurn, monsterTurn, setCombatButtonsEnabled, endCombat, toggleAutoAttack } from './gameLogic.js'; // Import gameLogic functions
 import {
     ctx, inventoryOverlayElement, itemTooltipElement, skillTooltipElement, // skillTooltipElement 추가
     merchantOverlayElement, merchantStockGridElement, playerSellGridElement,
@@ -461,40 +461,46 @@ export function updatePokemonBattleMonsterUI() {
 
 // New function to render combat skill bar
 export function renderCombatSkillBar() {
-    battleButtons.innerHTML = ''; // Clear existing buttons (like default attack)
+    // 기존의 모든 버튼을 제거 (스킬 버튼 및 빈 슬롯 버튼만 해당. 고정 버튼은 다시 append)
+    battleButtons.innerHTML = '';
 
-    // Add default attack button
-    const attackBtn = document.createElement('button');
-    attackBtn.id = 'battleAttackBtn';
-    attackBtn.classList.add('battle-action-btn');
-    attackBtn.textContent = '공격';
-    attackBtn.addEventListener('click', () => playerTurn());
-    battleButtons.appendChild(attackBtn);
+    // 공격 버튼 업데이트 및 재사용
+    battleAttackBtn.textContent = '공격';
+    battleAttackBtn.disabled = false; // 기본 공격은 항상 활성화
+    battleButtons.appendChild(battleAttackBtn);
 
-    // Add skill buttons
+    // 스킬 버튼들 추가
     gameState.playerStats.base.skillSlots.slots.forEach((skillId, index) => {
         if (skillId) {
             const skill = SKILLS[skillId];
             if (skill) {
                 const skillBtn = document.createElement('button');
                 skillBtn.classList.add('battle-action-btn', 'skill-combat-btn');
-                skillBtn.textContent = `${skill.name} (${index + 1})`; // Show skill name and shortcut number
                 skillBtn.dataset.skillIndex = index;
                 skillBtn.addEventListener('click', () => {
                     useSkill(index); // Call useSkill from gameLogic.js
                 });
 
-                // Disable if on cooldown or not enough mana
                 const onCooldown = gameState.skillCooldowns[skillId] && gameState.skillCooldowns[skillId] > 0;
                 const notEnoughMana = gameState.playerStats.base.mp < skill.cost;
                 skillBtn.disabled = onCooldown || notEnoughMana;
 
+                let buttonText = skill.name;
                 if (onCooldown) {
+                    buttonText += ` (${gameState.skillCooldowns[skillId]})`; // 남은 턴 수 표시
                     skillBtn.title = `쿨다운 ${gameState.skillCooldowns[skillId]} 턴 남음`;
                 } else if (notEnoughMana) {
                     skillBtn.title = `마나 부족 (${skill.cost} 필요)`;
+                } else {
+                    // 스킬 레벨에 맞는 설명이 배열로 되어있으므로, 현재 레벨 - 1 인덱스 사용
+                    const playerSkillLevel = gameState.playerStats.base.learnedSkills[skillId];
+                    if (playerSkillLevel > 0 && skill.description && skill.description[playerSkillLevel - 1]) {
+                         skillBtn.title = skill.description[playerSkillLevel - 1];
+                    } else {
+                         skillBtn.title = skill.name; // Fallback to skill name if no description
+                    }
                 }
-
+                skillBtn.textContent = buttonText;
                 battleButtons.appendChild(skillBtn);
             }
         } else {
@@ -507,33 +513,19 @@ export function renderCombatSkillBar() {
         }
     });
 
-    // Re-add auto attack button (already exists in domElements, just re-append)
-    const autoAttackBtn = document.createElement('button');
-    autoAttackBtn.id = 'battleAutoAttackBtn';
-    autoAttackBtn.classList.add('battle-action-btn');
-    autoAttackBtn.textContent = gameState.isAutoAttacking ? '자동 공격 중...' : '자동 공격';
-    autoAttackBtn.addEventListener('click', () => toggleAutoAttack()); // Assuming toggleAutoAttack is available globally or imported
-    battleButtons.appendChild(autoAttackBtn);
+    // 자동 공격 버튼 업데이트 및 재사용
+    battleAutoAttackBtn.textContent = gameState.isAutoAttacking ? '자동 공격 중...' : '자동 공격';
+    battleAutoAttackBtn.disabled = false; // 항상 활성화
+    battleButtons.appendChild(battleAutoAttackBtn);
 
-    // Re-add run away button
-    const runAwayBtn = document.createElement('button');
-    runAwayBtn.id = 'battleRunAwayBtn';
-    runAwayBtn.classList.add('battle-action-btn');
-    runAwayBtn.textContent = '도망가기';
-    runAwayBtn.addEventListener('click', () => {
-        logCombatMessage("You attempt to run away!");
-        setCombatButtonsEnabled(false); // Assuming setCombatButtonsEnabled is available globally or imported
-        if (Math.random() < ESCAPE_CHANCE) { // Assuming ESCAPE_CHANCE is imported from constants
-            logCombatMessage("You successfully escaped!");
-            setTimeout(() => endCombat(false), 500); // Assuming endCombat is available globally or imported
-        } else {
-            logCombatMessage("You failed to escape!");
-            setTimeout(() => monsterTurn(), 1000); // Assuming monsterTurn is available globally or imported
-        }
-    });
-    battleButtons.appendChild(runAwayBtn);
+    // 도망가기 버튼 업데이트 및 재사용
+    battleRunAwayBtn.textContent = '도망가기';
+    battleRunAwayBtn.disabled = false; // 항상 활성화
+    battleButtons.appendChild(battleRunAwayBtn);
 
-    setCombatButtonsEnabled(true); // Re-enable combat buttons if not auto-attacking
+    // setCombatButtonsEnabled는 이 함수 밖에서 호출되어야 할 것 같습니다.
+    setCombatButtonsEnabled(true); // 이 함수는 gameLogic.js에서 가져온 함수이므로 전역으로 노출되어 있다면 바로 사용 가능.
+                               // renderCombatSkillBar가 전투 UI 렌더링의 주된 역할이므로 여기에 두는 것이 합리적.
 }
 
 // --- Legacy / Other UI Functions ---

@@ -1,3 +1,6 @@
+import { applyStatusEffect } from './gameLogic.js';
+import { logCombatMessage } from './ui.js';
+
 export const SKILLS = {
     "powerStrike": {
         id: "powerStrike",
@@ -20,9 +23,11 @@ export const SKILLS = {
         ],
         coefficient: [1.5, 1.6, 1.7, 1.8, 2.0], // 레벨별 계수
         effect: (caster, target, skillLevel) => {
-            const damage = caster.derived.physicalAttack * SKILLS.powerStrike.coefficient[skillLevel - 1];
-            target.hp -= damage;
-            return `${target.name}에게 ${damage.toFixed(0)}의 물리 피해를 입혔다!`;
+            return {
+                damageCoefficient: SKILLS.powerStrike.coefficient[skillLevel - 1],
+                message: `${target.name}에게 강력한 강타를 시전한다!`,
+                damageType: 'physical'
+            };
         }
     },
 
@@ -44,14 +49,12 @@ export const SKILLS = {
             "주변의 모든 적에게 물리 피해를 입힙니다. (현재: 100% 물리 공격력)"
         ],
         coefficient: [0.8, 0.9, 1.0],
-        effect: (caster, targets, skillLevel) => { // targets는 배열로 가정
-            let message = "";
-            targets.forEach(target => {
-                const damage = caster.derived.physicalAttack * SKILLS.cleave.coefficient[skillLevel - 1];
-                target.hp -= damage;
-                message += `${target.name}에게 ${damage.toFixed(0)}의 물리 피해를 입혔다! `;
-            });
-            return message;
+        effect: (caster, target, skillLevel) => {
+            return {
+                damageCoefficient: SKILLS.cleave.coefficient[skillLevel - 1],
+                message: "주변의 적들에게 휩쓸기를 시전한다!", // 메시지는 동일하게 유지
+                damageType: 'physical'
+            };
         }
     },
 
@@ -122,9 +125,11 @@ export const SKILLS = {
         ],
         coefficient: [1.8, 1.9, 2.0, 2.1, 2.3],
         effect: (caster, target, skillLevel) => {
-            const damage = caster.derived.magicalAttack * SKILLS.fireball.coefficient[skillLevel - 1];
-            target.hp -= damage;
-            return `${target.name}에게 ${damage.toFixed(0)}의 마법 피해를 입혔다!`;
+            return {
+                damageCoefficient: SKILLS.fireball.coefficient[skillLevel - 1],
+                message: `${target.name}에게 화염구를 시전한다!`,
+                damageType: 'magical'
+            };
         }
     },
 
@@ -275,12 +280,11 @@ export const MONSTER_SKILLS = {
         description: "플레이어를 중독시켜 지속 피해를 입힙니다.",
         coefficient: 0.5, // 몬스터 마법 공격력에 곱해질 계수
         effect: (caster, target) => {
-            // applyStatusEffect 함수는 gameLogic.js에 있다고 가정합니다.
-            // 실제 구현 시 import 필요
-            // applyStatusEffect(target, { type: 'poison', duration: 3, magnitude: caster.magicalAttack * MONSTER_SKILLS.poisonSpit.coefficient });
-            // logCombatMessage 함수는 ui.js에 있다고 가정합니다.
-            // 실제 구현 시 import 필요
-            // logCombatMessage(`${caster.name}이(가) ${target.name || '플레이어'}에게 독을 뱉습니다!`);
+            const damage = caster.magicalAttack * MONSTER_SKILLS.poisonSpit.coefficient;
+            target.hp -= damage; // Direct damage
+            applyStatusEffect(target, { type: 'poison', duration: 3, magnitude: caster.magicalAttack * 0.1 }); // Poison over time
+            logCombatMessage(`<span style="color: mediumpurple;">${caster.name}이(가) ${target.name || '플레이어'}에게 독침을 뱉어 ${damage.toFixed(0)}의 피해를 입혔다!</span>`);
+            logCombatMessage(`<span style="color: mediumpurple;">${target.name || '플레이어'}이(가) 독에 중독되었다!</span>`);
         }
     },
     "frenzy": {
@@ -290,12 +294,8 @@ export const MONSTER_SKILLS = {
         description: "일정 시간 동안 자신의 공격력을 증가시킵니다.",
         coefficient: 1.5, // 광란 시 공격력 계수
         effect: (caster, target) => { // 몬스터 자신(caster)에게 버프 적용
-            // applyStatusEffect 함수는 gameLogic.js에 있다고 가정합니다.
-            // 실제 구현 시 import 필요
-            // logCombatMessage 함수는 ui.js에 있다고 가정합니다.
-            // 실제 구현 시 import 필요
-            // applyStatusEffect(caster, { type: 'attack_buff', duration: 3, magnitude: MONSTER_SKILLS.frenzy.coefficient });
-            // logCombatMessage(`${caster.name}이(가) 광란 상태에 빠집니다!`);
+            applyStatusEffect(caster, { type: 'attack_buff', duration: 3, magnitude: MONSTER_SKILLS.frenzy.coefficient });
+            logCombatMessage(`<span style="color: lightcoral;">${caster.name}이(가) 광란 상태에 빠져 공격력이 증가했다!</span>`);
         }
     },
     "slam": { // For bruisers, tanks
@@ -305,7 +305,11 @@ export const MONSTER_SKILLS = {
         description: "강력하게 내려찍어 물리 피해를 입히고 잠시 기절시킵니다.",
         coefficient: 1.2,
         effect: (caster, target) => {
-            // Placeholder: Needs applyStatusEffect, logCombatMessage
+            const damage = caster.physicalAttack * MONSTER_SKILLS.slam.coefficient;
+            target.hp -= damage;
+            applyStatusEffect(target, { type: 'stun', duration: 1 });
+            logCombatMessage(`<span style="color: crimson;">${caster.name}이(가) ${target.name || '플레이어'}에게 내려찍기! ${damage.toFixed(0)}의 피해를 입혔다!</span>`);
+            logCombatMessage(`<span style="color: crimson;">${target.name || '플레이어'}이(가) 기절했다!</span>`);
         }
     },
     "charge": { // For rushers, bruisers
@@ -315,7 +319,11 @@ export const MONSTER_SKILLS = {
         description: "플레이어에게 돌진하여 물리 피해를 입히고 밀쳐냅니다.",
         coefficient: 1.5,
         effect: (caster, target) => {
-            // Placeholder: Needs map interaction for push back
+            const damage = caster.physicalAttack * MONSTER_SKILLS.charge.coefficient;
+            target.hp -= damage;
+            logCombatMessage(`<span style="color: crimson;">${caster.name}이(가) ${target.name || '플레이어'}에게 돌진하여 ${damage.toFixed(0)}의 피해를 입혔다!</span>`);
+            // For now, only text. Actual push back on map can be a future enhancement.
+            logCombatMessage(`<span style="color: lightgray;">${target.name || '플레이어'}이(가) 밀쳐졌다!</span>`);
         }
     },
     "fireBreath": { // For fire-themed casters (e.g., dragons, fire worms)
@@ -326,7 +334,11 @@ export const MONSTER_SKILLS = {
         coefficient: 1.8,
         elementalType: 'fire',
         effect: (caster, target) => {
-            // Placeholder: Needs applyStatusEffect (burn), logCombatMessage
+            const damage = caster.magicalAttack * MONSTER_SKILLS.fireBreath.coefficient;
+            target.hp -= damage;
+            applyStatusEffect(target, { type: 'burn', duration: 2, magnitude: caster.magicalAttack * 0.05 });
+            logCombatMessage(`<span style="color: orangered;">${caster.name}이(가) ${target.name || '플레이어'}에게 화염 숨결을 뿜어 ${damage.toFixed(0)}의 피해를 입혔다!</span>`);
+            logCombatMessage(`<span style="color: orangered;">${target.name || '플레이어'}이(가) 불에 탔다!</span>`);
         }
     },
     "iceShard": { // For ice-themed casters
@@ -337,7 +349,11 @@ export const MONSTER_SKILLS = {
         coefficient: 1.2,
         elementalType: 'ice',
         effect: (caster, target) => {
-            // Placeholder: Needs applyStatusEffect (slow), logCombatMessage
+            const damage = caster.magicalAttack * MONSTER_SKILLS.iceShard.coefficient;
+            target.hp -= damage;
+            applyStatusEffect(target, { type: 'slow', duration: 2, magnitude: 0.2 }); // 20% slow
+            logCombatMessage(`<span style="color: deepskyblue;">${caster.name}이(가) ${target.name || '플레이어'}에게 얼음 파편을 발사하여 ${damage.toFixed(0)}의 피해를 입혔다!</span>`);
+            logCombatMessage(`<span style="color: deepskyblue;">${target.name || '플레이어'}이(가) 느려졌다!</span>`);
         }
     },
     "shadowBind": { // For dark/caster types
@@ -345,10 +361,13 @@ export const MONSTER_SKILLS = {
         name: "그림자 속박",
         cooldown: 4,
         description: "그림자로 플레이어를 속박하여 행동을 제한하고 지속적인 어둠 피해를 입힙니다.",
-        coefficient: 0.8,
+        coefficient: 0.8, // DoT magnitude
         elementalType: 'dark',
         effect: (caster, target) => {
-            // Placeholder: Needs applyStatusEffect (root, dark_dot), logCombatMessage
+            applyStatusEffect(target, { type: 'root', duration: 2 }); // Root for 2 turns
+            applyStatusEffect(target, { type: 'dark_dot', duration: 3, magnitude: caster.magicalAttack * MONSTER_SKILLS.shadowBind.coefficient }); // Dark DoT
+            logCombatMessage(`<span style="color: darkgray;">${caster.name}이(가) ${target.name || '플레이어'}를 그림자로 속박했다!</span>`);
+            logCombatMessage(`<span style="color: darkgray;">${target.name || '플레이어'}이(가) 어둠의 고통에 시달린다!</span>`);
         }
     },
     "healingAuraMonster": { // For supportive casters, shamans
@@ -356,7 +375,10 @@ export const MONSTER_SKILLS = {
         name: "치유 오라",
         cooldown: 6,
         description: "주변의 모든 아군 몬스터의 체력을 회복시킵니다.",
-        effect: (caster, target) => {
+        effect: (caster, target) => { // Currently self-heal, needs broader context for AoE monster heal
+            const healAmount = caster.magicalAttack * 0.7; // Example coefficient
+            caster.hp = Math.min(caster.maxHp, caster.hp + healAmount);
+            logCombatMessage(`<span style="color: limegreen;">${caster.name}이(가) 치유 오라를 사용하여 ${healAmount.toFixed(0)}의 체력을 회복했다!</span>`);
             // Placeholder: Needs logic to find nearby monsters, apply healing
         }
     },
@@ -367,7 +389,8 @@ export const MONSTER_SKILLS = {
         description: "일정 시간 동안 자신의 회피율을 크게 증가시킵니다.",
         coefficient: 0.2, // evasion percentage
         effect: (caster, target) => { // Self-buff
-            // Placeholder: Needs applyStatusEffect (evasion_buff), logCombatMessage
+            applyStatusEffect(caster, { type: 'evasion_buff', duration: 3, magnitude: MONSTER_SKILLS.evadeBoost.coefficient });
+            logCombatMessage(`<span style="color: dodgerblue;">${caster.name}이(가) 회피를 강화하여 민첩해졌다!</span>`);
         }
     },
     "berserk": { // For bruisers, elite types
@@ -377,7 +400,9 @@ export const MONSTER_SKILLS = {
         description: "일정 시간 동안 공격력이 크게 증가하지만 방어력이 감소합니다.",
         coefficient: 0.3, // attack boost, defense debuff
         effect: (caster, target) => { // Self-buff
-            // Placeholder: Needs applyStatusEffect (attack_buff, defense_debuff), logCombatMessage
+            applyStatusEffect(caster, { type: 'attack_buff', duration: 3, magnitude: MONSTER_SKILLS.berserk.coefficient });
+            applyStatusEffect(caster, { type: 'defense_debuff', duration: 3, magnitude: MONSTER_SKILLS.berserk.coefficient * 0.5 }); // defense debuff is half of attack buff
+            logCombatMessage(`<span style="color: lightcoral;">${caster.name}이(가) 광폭화하여 공격력이 증가하고 방어력이 감소했다!</span>`);
         }
     },
     "roar": { // For bruisers, tanks, elite
@@ -386,7 +411,8 @@ export const MONSTER_SKILLS = {
         cooldown: 4,
         description: "위협적인 포효로 플레이어를 공포에 떨게 합니다.",
         effect: (caster, target) => {
-            // Placeholder: Needs applyStatusEffect (fear), logCombatMessage
+            applyStatusEffect(target, { type: 'fear', duration: 2 });
+            logCombatMessage(`<span style="color: darkorange;">${caster.name}이(가) 포효하여 ${target.name || '플레이어'}를 공포에 떨게 했다!</span>`);
         }
     },
     "webShot": { // For spider-like monsters
@@ -395,7 +421,8 @@ export const MONSTER_SKILLS = {
         cooldown: 3,
         description: "끈적한 거미줄을 발사하여 플레이어를 속박합니다.",
         effect: (caster, target) => {
-            // Placeholder: Needs applyStatusEffect (root), logCombatMessage
+            applyStatusEffect(target, { type: 'root', duration: 2 });
+            logCombatMessage(`<span style="color: lightgray;">${caster.name}이(가) ${target.name || '플레이어'}에게 거미줄을 발사하여 속박했다!</span>`);
         }
     },
     "venomousBite": { // For poison-themed physical attackers
@@ -405,7 +432,11 @@ export const MONSTER_SKILLS = {
         description: "맹독이 묻은 이빨로 물어뜯어 물리 피해와 함께 강력한 독을 겁니다.",
         coefficient: 1.0,
         effect: (caster, target) => {
-            // Placeholder: Needs applyStatusEffect (poison), logCombatMessage
+            const damage = caster.physicalAttack * MONSTER_SKILLS.venomousBite.coefficient;
+            target.hp -= damage;
+            applyStatusEffect(target, { type: 'poison', duration: 3, magnitude: caster.physicalAttack * 0.1 });
+            logCombatMessage(`<span style="color: seagreen;">${caster.name}이(가) ${target.name || '플레이어'}를 맹독 이빨로 물어뜯어 ${damage.toFixed(0)}의 피해를 입혔다!</span>`);
+            logCombatMessage(`<span style="color: seagreen;">${target.name || '플레이어'}이(가) 강력한 독에 중독되었다!</span>`);
         }
     },
     "stoneSkin": { // For tanks, golems
@@ -415,7 +446,8 @@ export const MONSTER_SKILLS = {
         description: "자신의 피부를 단단하게 만들어 방어력을 크게 증가시킵니다.",
         coefficient: 0.3, // defense percentage
         effect: (caster, target) => { // Self-buff
-            // Placeholder: Needs applyStatusEffect (defense_buff), logCombatMessage
+            applyStatusEffect(caster, { type: 'defense_buff', duration: 4, magnitude: MONSTER_SKILLS.stoneSkin.coefficient });
+            logCombatMessage(`<span style="color: lightgray;">${caster.name}이(가) 돌 피부를 활성화하여 방어력이 단단해졌다!</span>`);
         }
     },
     "groundStomp": { // For bruisers, tanks, large monsters
@@ -425,6 +457,9 @@ export const MONSTER_SKILLS = {
         description: "지면을 강타하여 주변 플레이어에게 물리 피해를 입힙니다.",
         coefficient: 1.0,
         effect: (caster, target) => { // AoE around monster
+            const damage = caster.physicalAttack * MONSTER_SKILLS.groundStomp.coefficient;
+            target.hp -= damage;
+            logCombatMessage(`<span style="color: peru;">${caster.name}이(가) 지면을 강타하여 ${target.name || '플레이어'}에게 ${damage.toFixed(0)}의 피해를 입혔다!</span>`);
             // Placeholder: Needs AoE damage logic, logCombatMessage
         }
     },
@@ -436,7 +471,11 @@ export const MONSTER_SKILLS = {
         coefficient: 0.8,
         elementalType: 'poison',
         effect: (caster, target) => {
-            // Placeholder: Needs applyStatusEffect (defense_debuff), logCombatMessage
+            const damage = caster.magicalAttack * MONSTER_SKILLS.acidSpit.coefficient;
+            target.hp -= damage;
+            applyStatusEffect(target, { type: 'defense_debuff', duration: 3, magnitude: 0.15 }); // 15% defense reduction
+            logCombatMessage(`<span style="color: yellowgreen;">${caster.name}이(가) ${target.name || '플레이어'}에게 산성 침을 뱉어 ${damage.toFixed(0)}의 피해를 입혔다!</span>`);
+            logCombatMessage(`<span style="color: yellowgreen;">${target.name || '플레이어'}의 방어력이 약해졌다!</span>`);
         }
     },
     "leapAttack": { // For rushers, agile bruisers
@@ -446,6 +485,9 @@ export const MONSTER_SKILLS = {
         description: "플레이어에게 도약하여 물리 피해를 입힙니다.",
         coefficient: 1.3,
         effect: (caster, target) => {
+            const damage = caster.physicalAttack * MONSTER_SKILLS.leapAttack.coefficient;
+            target.hp -= damage;
+            logCombatMessage(`<span style="color: chocolate;">${caster.name}이(가) ${target.name || '플레이어'}에게 도약 공격하여 ${damage.toFixed(0)}의 피해를 입혔다!</span>`);
             // Placeholder: Needs map interaction (move monster), logCombatMessage
         }
     },
@@ -457,7 +499,11 @@ export const MONSTER_SKILLS = {
         coefficient: 1.5,
         elementalType: 'ice',
         effect: (caster, target) => { // AoE around monster
-            // Placeholder: Needs applyStatusEffect (freeze), logCombatMessage
+            const damage = caster.magicalAttack * MONSTER_SKILLS.frostNova.coefficient;
+            target.hp -= damage;
+            applyStatusEffect(target, { type: 'freeze', duration: 1 });
+            logCombatMessage(`<span style="color: aqua;">${caster.name}이(가) 서리 폭발을 일으켜 ${target.name || '플레이어'}에게 ${damage.toFixed(0)}의 피해를 입혔다!</span>`);
+            logCombatMessage(`<span style="color: aqua;">${target.name || '플레이어'}이(가) 얼어붙었다!</span>`);
         }
     },
     "electrocute": { // For lightning-themed casters
@@ -468,7 +514,11 @@ export const MONSTER_SKILLS = {
         coefficient: 1.0,
         elementalType: 'lightning',
         effect: (caster, target) => {
-            // Placeholder: Needs applyStatusEffect (stun), logCombatMessage
+            const damage = caster.magicalAttack * MONSTER_SKILLS.electrocute.coefficient;
+            target.hp -= damage;
+            applyStatusEffect(target, { type: 'stun', duration: 1 });
+            logCombatMessage(`<span style="color: gold;">${caster.name}이(가) ${target.name || '플레이어'}를 감전시켜 ${damage.toFixed(0)}의 피해를 입혔다!</span>`);
+            logCombatMessage(`<span style="color: gold;">${target.name || '플레이어'}이(가) 기절했다!</span>`);
         }
     },
     "webSpray": { // For spider-like monsters (AoE root)
@@ -477,6 +527,8 @@ export const MONSTER_SKILLS = {
         cooldown: 4,
         description: "광범위하게 거미줄을 분사하여 여러 플레이어를 속박합니다.",
         effect: (caster, target) => { // AoE
+            applyStatusEffect(target, { type: 'root', duration: 2 });
+            logCombatMessage(`<span style="color: lightgray;">${caster.name}이(가) 거미줄을 분사하여 ${target.name || '플레이어'}를 속박했다!</span>`);
             // Placeholder: Needs applyStatusEffect (root), logic to find multiple targets
         }
     },
@@ -487,6 +539,9 @@ export const MONSTER_SKILLS = {
         description: "그림자에 숨어 플레이어 뒤로 순간 이동하여 기습 공격합니다.",
         coefficient: 1.5,
         effect: (caster, target) => {
+            const damage = caster.physicalAttack * MONSTER_SKILLS.shadowStep.coefficient;
+            target.hp -= damage;
+            logCombatMessage(`<span style="color: darkgray;">${caster.name}이(가) 그림자 밟기로 ${target.name || '플레이어'}를 기습하여 ${damage.toFixed(0)}의 피해를 입혔다!</span>`);
             // Placeholder: Needs map interaction (teleport), logCombatMessage
         }
     },
@@ -497,7 +552,9 @@ export const MONSTER_SKILLS = {
         description: "자신의 체력을 빠르게 회복시킵니다.",
         coefficient: 0.3, // Percentage of max HP
         effect: (caster, target) => { // Self-heal
-            // Placeholder: Needs self-healing logic, logCombatMessage
+            const healAmount = caster.maxHp * MONSTER_SKILLS.regeneration.coefficient;
+            caster.hp = Math.min(caster.maxHp, caster.hp + healAmount);
+            logCombatMessage(`<span style="color: mediumseagreen;">${caster.name}이(가) 재생을 사용하여 ${healAmount.toFixed(0)}의 체력을 회복했다!</span>`);
         }
     },
     "toxicCloud": { // For poison-themed casters
@@ -508,7 +565,8 @@ export const MONSTER_SKILLS = {
         coefficient: 0.1, // DoT magnitude
         elementalType: 'poison',
         effect: (caster, target) => {
-            // Placeholder: Needs applyStatusEffect (poison), logCombatMessage
+            applyStatusEffect(target, { type: 'poison', duration: 4, magnitude: caster.magicalAttack * MONSTER_SKILLS.toxicCloud.coefficient });
+            logCombatMessage(`<span style="color: seagreen;">${caster.name}이(가) 맹독 구름을 생성하여 ${target.name || '플레이어'}를 중독시켰다!</span>`);
         }
     },
     "drainLife": { // For dark/caster types
@@ -518,7 +576,11 @@ export const MONSTER_SKILLS = {
         description: "플레이어의 생명력을 흡수하여 자신의 체력을 회복합니다.",
         coefficient: 1.0, // damage, lifesteal percentage
         effect: (caster, target) => {
-            // Placeholder: Needs lifesteal logic, logCombatMessage
+            const damage = caster.magicalAttack * MONSTER_SKILLS.drainLife.coefficient;
+            target.hp -= damage;
+            const healAmount = damage * 0.5; // Lifesteal for 50% of damage dealt
+            caster.hp = Math.min(caster.maxHp, caster.hp + healAmount);
+            logCombatMessage(`<span style="color: darkviolet;">${caster.name}이(가) ${target.name || '플레이어'}의 생명력을 흡수하여 ${damage.toFixed(0)}의 피해를 입히고 ${healAmount.toFixed(0)}의 체력을 회복했다!</span>`);
         }
     },
     "blindingFlash": { // For casters
@@ -527,7 +589,8 @@ export const MONSTER_SKILLS = {
         cooldown: 3,
         description: "강렬한 섬광으로 플레이어를 실명시킵니다.",
         effect: (caster, target) => {
-            // Placeholder: Needs applyStatusEffect (blind), logCombatMessage
+            applyStatusEffect(target, { type: 'blind', duration: 2 });
+            logCombatMessage(`<span style="color: silver;">${caster.name}이(가) 강렬한 섬광으로 ${target.name || '플레이어'}를 실명시켰다!</span>`);
         }
     },
     "spikeBarrage": { // For physical ranged, defender types
@@ -537,7 +600,9 @@ export const MONSTER_SKILLS = {
         description: "몸에서 날카로운 가시를 발사하여 물리 피해를 입힙니다.",
         coefficient: 1.0,
         effect: (caster, target) => {
-            // Placeholder: Needs damage logic, logCombatMessage
+            const damage = caster.physicalAttack * MONSTER_SKILLS.spikeBarrage.coefficient;
+            target.hp -= damage;
+            logCombatMessage(`<span style="color: peru;">${caster.name}이(가) 가시 폭풍을 일으켜 ${target.name || '플레이어'}에게 ${damage.toFixed(0)}의 피해를 입혔다!</span>`);
         }
     },
     "infectiousBite": { // For zombie-like, poison types
@@ -547,7 +612,11 @@ export const MONSTER_SKILLS = {
         description: "감염된 이빨로 물어뜯어 물리 피해와 함께 전염병을 겁니다.",
         coefficient: 1.0,
         effect: (caster, target) => {
-            // Placeholder: Needs applyStatusEffect (disease), logCombatMessage
+            const damage = caster.physicalAttack * MONSTER_SKILLS.infectiousBite.coefficient;
+            target.hp -= damage;
+            applyStatusEffect(target, { type: 'disease', duration: 3 });
+            logCombatMessage(`<span style="color: yellowgreen;">${caster.name}이(가) ${target.name || '플레이어'}를 감염된 이빨로 물어뜯어 ${damage.toFixed(0)}의 피해를 입혔다!</span>`);
+            logCombatMessage(`<span style="color: yellowgreen;">${target.name || '플레이어'}이(가) 전염병에 걸렸다!</span>`);
         }
     },
     "disorientingGaze": { // For caster, mental types
@@ -556,7 +625,8 @@ export const MONSTER_SKILLS = {
         cooldown: 4,
         description: "혼란스러운 시선으로 플레이어를 잠시 혼란에 빠뜨립니다.",
         effect: (caster, target) => {
-            // Placeholder: Needs applyStatusEffect (confuse), logCombatMessage
+            applyStatusEffect(target, { type: 'confuse', duration: 2 });
+            logCombatMessage(`<span style="color: lightblue;">${caster.name}이(가) 혼란의 시선으로 ${target.name || '플레이어'}를 혼란에 빠뜨렸다!</span>`);
         }
     }
 };

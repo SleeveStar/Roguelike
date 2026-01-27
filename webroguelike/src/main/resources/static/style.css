@@ -904,26 +904,84 @@ canvas {
 }
 
 .battle-action-btn {
-    background-color: #f0f0f0;
-    color: #333;
-    border: 2px solid #555;
+    background-color: #4B4FAE;   /* 어두운 블루퍼플 */
+    color: #FFFFFF;
+    border: 2px solid #34388F;
     border-radius: 8px;
     font-family: 'Spoqa Han Sans Neo', 'sans-serif';
     font-weight: bold;
-    font-size: 1.2em;
+    font-size: 0.95em;
     cursor: pointer;
     transition: all 0.2s;
-    padding: 15px;
+    padding: 6px 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
+#battleAttackBtn {
+    background-color: #4682B4;   /* SteelBlue */
+    color: white;
+    border: 2px solid #3A6FA5;   /* 살짝 더 어두운 블루 */
+}
+
+#battleAttackBtn:hover:not(:disabled) {
+    background-color: #5A9BD4;   /* 밝아진 SteelBlue */
+    border-color: #4682B4;       /* 기본색으로 */
+}
+
+#battleAttackBtn:disabled {
+    background-color: #5F9EA0; /* Darker CadetBlue */
+    color: #BBB;
+    border-color: #708090; /* SlateGray */
+}
+
+#battleAutoAttackBtn {
+    background-color: #3CB371;   /* MediumSeaGreen */
+    color: white;
+    border: 2px solid #2E8B57;   /* SeaGreen */
+}
+
+#battleAutoAttackBtn:hover:not(:disabled) {
+    background-color: #5FD19A;   /* 밝은 SeaGreen */
+    border-color: #3CB371;
+}
+
+#battleAutoAttackBtn:disabled {
+    background-color: #9EDFC2;   /* 연한 SeaGreen */
+    color: #E5E5E5;
+    border-color: #7FBFA4;
+}
+
+
+#battleRunAwayBtn {
+    background-color: #CD5C5C;   /* IndianRed 계열 */
+    color: white;
+    border: 2px solid #B44A4A;   /* 조금 더 어두운 레드 */
+}
+
+#battleRunAwayBtn:hover:not(:disabled) {
+    background-color: #E57373;   /* 더 밝은 레드 */
+    border-color: #CD5C5C;
+}
+
+#battleRunAwayBtn:disabled {
+    background-color: #F2B5B5;   /* 연한 레드 */
+    color: #EEE;
+    border-color: #D9A0A0;
+}
+
+
+
 .battle-action-btn:hover:not(:disabled) {
-    background-color: #ddd;
-    border-color: #111;
+    background-color: #6A6FE0;   /* 밝아지는 마법빛 */
+    border-color: #4B4FAE;
 }
 
 .battle-action-btn:disabled {
-    background-color: #999;
-    color: #666;
+    background-color: #8E91D8;   /* 힘 빠진 스킬 */
+    color: #EEE;
+    border-color: #6F72B5;
     cursor: not-allowed;
 }
 
