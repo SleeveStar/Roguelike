@@ -654,7 +654,7 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
         const existingEffectIndex = target.statusEffects.findIndex(e => e.type === effect.type);
 
         // 이름을 결정하는 로직 추가
-        const entityName = (target.id === 'player') ? '플레이어' : target.name;
+        const entityName = (target.derived && target.derived.id === 'player') ? '플레이어' : target.name;
 
         if (existingEffectIndex !== -1) {
             target.statusEffects[existingEffectIndex].duration = effect.duration;
@@ -1256,7 +1256,7 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
 
     export function useSkill(skillSlotIndex) {
         setCombatButtonsEnabled(false); // Disable buttons while skill is processing
-        processCooldowns(); // 스킬 사용 시에도 쿨다운을 감소시킵니다.
+
 
         const playerBase = gameState.playerStats.base;
         const playerDerived = gameState.playerStats.derived;
@@ -1411,7 +1411,7 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
 
     export function playerTurn() {
         setCombatButtonsEnabled(false);
-        processCooldowns(); // Decrement all cooldowns at the start of the player's turn
+
 
         // 방어 로직: currentCombatMonster가 null인 경우 턴 중단
         if (!gameState.currentCombatMonster) {
@@ -1534,6 +1534,7 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
                 setCombatButtonsEnabled(true);
             }
         }
+        processCooldowns(); // 쿨다운 감소는 몬스터 턴의 끝에서 한 번만 처리됩니다.
     }
 
     export function toggleAutoAttack() {

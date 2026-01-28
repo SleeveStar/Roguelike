@@ -140,7 +140,7 @@ function handleKeyDown(event) {
     if (!(newX >= 0 && newX < mapGridWidthPixels && newY >= 0 && newY < mapGridHeightPixels)) {
         if (newX < 0) transitionMap('left'); else if (newX >= mapGridWidthPixels) transitionMap('right');
         else if (newY < 0) transitionMap('up'); else if (newY >= mapGridHeightPixels) transitionMap('down');
-        return;w
+        return;
     }
 
     // Check for walkable tiles
