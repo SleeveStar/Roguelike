@@ -19,6 +19,8 @@ export const gameState = {
             vitality: 5,
             mentality: 5,
             luck: 5,
+            hpRegen: 1, // 기본 체력 재생
+            manaRegen: 1, // 기본 마나 재생
             availableSkillPoints: 1, // 초기 스킬 포인트 1로 설정
             learnedSkills: {         // 배운 스킬 ID와 레벨을 매핑하는 객체
                 "powerStrike": 1, // powerStrike 레벨 1로 시작
@@ -76,6 +78,8 @@ export function resetGameState() {
             vitality: 5,
             mentality: 5,
             luck: 5,
+            hpRegen: 1,
+            manaRegen: 1,
             availableSkillPoints: 1,
             learnedSkills: {
                 "powerStrike": 1,

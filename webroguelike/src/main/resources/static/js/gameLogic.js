@@ -75,7 +75,8 @@ export function recalculateDerivedStats() {
         magicFind: 0,
         goldFind: 0,
         lifesteal: 0,
-        manaRegen: 0, // 초기화
+        hpRegen: totalStats.hpRegen || 0, // 기본 체력 재생량 반영
+        manaRegen: totalStats.manaRegen || 0, // 기본 마나 재생량 반영
         manaCostReduction: 0, // 초기화
         statusEffects: [],
         elementalDamage: { fire: 0, ice: 0, poison: 0, lightning: 0, dark: 0 }, // Initialize dark elemental damage
@@ -374,7 +375,7 @@ export function equipItem(itemIndex) {
 
 export function unequipItem(slot) {
     if (gameState.playerStats.inventory.length >= INVENTORY_SIZE) {
-        logCombatMessage("<span style='color: lightcoral;'>Your inventory is full! Cannot unequip item.</span>");
+        logCombatMessage("<span style='color: lightcoral;'>인벤토리가 가득 찼습니다! 아이템을 해제할 수 없습니다.</span>");
         return;
     }
     const item = gameState.playerStats.equipment[slot];
@@ -392,7 +393,7 @@ export function unequipItem(slot) {
 
 export function gainExperience(amount) {
     gameState.playerStats.base.experience += amount;
-    logCombatMessage(`<span style="color: gold;">You gained ${amount.toFixed(0)} XP.</span>`);
+    logCombatMessage(`<span style="color: gold;">${amount.toFixed(0)} 경험치를 획득했습니다.</span>`);
     while (gameState.playerStats.base.experience >= gameState.playerStats.base.experienceToNextLevel) {
         gameState.playerStats.base.experience -= gameState.playerStats.base.experienceToNextLevel;
         levelUp();
@@ -411,7 +412,7 @@ export function levelUp() {
     base.hp = gameState.playerStats.derived.maxHp; // Heal to full on level up
     base.mp = gameState.playerStats.derived.maxMp;
 
-    logCombatMessage(`<span style="color: gold;">LEVEL UP! You are now Level ${base.level}!</span>`);
+    logCombatMessage(`<span style="color: gold;">레벨 업! 현재 레벨 ${base.level}입니다!</span>`);
     logCombatMessage(`<span style="color: gold;">새로운 스킬 포인트를 획득했습니다! '스킬' 버튼을 확인하세요.</span>`); // 스킬 포인트 획득 알림
     updateStatusDisplay();
     updateSkillTreeButtonState(); // 스킬 버튼 반짝임 상태 업데이트
@@ -547,7 +548,7 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
         // Evasion Check
         if (defender.derived && defender.derived.evasion > 0) {
             if (Math.random() < defender.derived.evasion) {
-                logCombatMessage(`${defender.name || 'Player'} evaded the attack!`);
+                logCombatMessage(`${defender.name || '플레이어'}가 공격을 회피했습니다!`);
                 return {damage: 0, isCritical: false, isEvaded: true};
             }
         }
@@ -572,7 +573,7 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
             // Use the pre-calculated rangedAttack from derived stats
             attack = attackerStats.rangedAttack || 0; // Derived rangedAttack will be used
             defense = defenderStats.physicalDefense || 0; // Ranged attacks use physical defense
-            logCombatMessage(`Ranged Attack!`); // For debugging/testing
+            logCombatMessage(`원거리 공격!`); // For debugging/testing
         }
 
         // Apply Aura Defense from player's unique items if player is attacker and target is monster
@@ -629,7 +630,7 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
         if (attackerStats.lifesteal > 0 && attacker.id === 'player') {
             const healedAmount = Math.floor(finalDamage * attackerStats.lifesteal);
             gameState.playerStats.base.hp = Math.min(gameState.playerStats.derived.maxHp, gameState.playerStats.base.hp + healedAmount);
-            logCombatMessage(`<span style="color: mediumspringgreen;">You lifesteal ${healedAmount} HP!</span>`);
+            logCombatMessage(`<span style="color: mediumspringgreen;">생명력 흡수로 ${healedAmount}의 HP를 회복했습니다!</span>`);
             updateStatusDisplay(); // 메인 스탯 패널 업데이트
             updatePokemonBattlePlayerUI(); // 전투 UI의 플레이어 HP 바 업데이트
         }
@@ -658,13 +659,15 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
         if (existingEffectIndex !== -1) {
             target.statusEffects[existingEffectIndex].duration = effect.duration;
             target.statusEffects[existingEffectIndex].magnitude = Math.max(target.statusEffects[existingEffectIndex].magnitude, effect.magnitude);
-            logCombatMessage(`${entityName} ${effect.type} effect refreshed!`);
+            logCombatMessage(`<span style="color: yellow;">${entityName}의 ${effect.type} 효과가 갱신되었습니다!</span>`);
         } else {
             target.statusEffects.push({...effect, currentDuration: effect.duration});
+            const effectName = SKILLS[effect.skillId]?.name || effect.type;
+
             if (effect.type === 'stun') {
-                logCombatMessage(`<span style="color: orange;">${entityName}이(가) 기절했습니다!</span>`);
+                logCombatMessage(`<span style="color: orange;">${entityName}이(가) ${effectName} 효과로 기절했습니다!</span>`);
             } else {
-                logCombatMessage(`${entityName} is now ${effect.type}ing!`);
+                logCombatMessage(`<span style="color: lightcoral;">${entityName}이(가) ${effectName} 효과로 ${effect.type} 상태가 되었습니다!</span>`);
             }
         }
     }
@@ -676,7 +679,7 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
 
         entity.statusEffects = entity.statusEffects.filter(effect => {
             if (effect.currentDuration <= 0) {
-                logCombatMessage(`${entityName}'s ${effect.type} effect wears off.`);
+                logCombatMessage(`<span style="color: lightgray;">${entityName}의 ${effect.type} 효과가 사라졌습니다.</span>`);
                 // Reset any specific effects if needed
                 if (effect.type === 'stun') {
                     // Stun wears off, entity can act again
@@ -685,12 +688,15 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
             }
 
             let effectDamage = 0;
+            // NaN 버그 수정: 플레이어와 몬스터의 maxHp 위치가 다름
+            const maxHp = (entity.id === 'player') ? entity.derived.maxHp : entity.maxHp;
+
             if (effect.type === 'bleed') {
-                effectDamage = Math.floor(effect.magnitude * (entity.maxHp * 0.01));
-                logCombatMessage(`<span style="color: red;">${entityName} bleeds for ${effectDamage} damage!</span>`);
+                effectDamage = Math.floor(effect.magnitude * (maxHp * 0.01));
+                logCombatMessage(`<span style="color: red;">${entityName}이(가) 출혈로 ${effectDamage}의 피해를 입었습니다!</span>`);
             } else if (effect.type === 'poison') {
-                effectDamage = Math.floor(effect.magnitude * (entity.maxHp * 0.005));
-                logCombatMessage(`<span style="color: lightgreen;">${entityName} is poisoned for ${effectDamage} damage!</span>`);
+                effectDamage = Math.floor(effect.magnitude * (maxHp * 0.005));
+                logCombatMessage(`<span style="color: lightgreen;">${entityName}이(가) 중독으로 ${effectDamage}의 피해를 입었습니다!</span>`);
             } else if (effect.type === 'stun') {
                 // Stun effect: entity skips turn. Handled in playerTurn/monsterTurn before action.
                 // Just decrement duration here.
@@ -1172,14 +1178,14 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
 
         // Clear log and add initial message
         battleLog.innerHTML = '';
-        logCombatMessage(`You encountered a ${monster.name}!`);
+        logCombatMessage(`${monster.name}와 마주쳤습니다!`);
 
         // Determine who goes first
         if (gameState.playerStats.derived.speed >= gameState.currentCombatMonster.speed) {
-            logCombatMessage("You are faster and get the first turn!");
+            logCombatMessage("당신이 더 빠릅니다! 선공을 취합니다!");
             setCombatButtonsEnabled(true);
         } else {
-            logCombatMessage("The monster is faster and attacks first!");
+            logCombatMessage("몬스터가 더 빠릅니다! 몬스터가 먼저 공격합니다!");
             setCombatButtonsEnabled(false);
             setTimeout(monsterTurn, 1000);
         }
@@ -1191,7 +1197,7 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
             if (wasVictory && gameState.currentCombatMonster) {
                 const goldAmount = calculateGoldDrop(gameState.currentCombatMonster);
                 gameState.playerStats.base.gold += goldAmount;
-                logCombatMessage(`<span style="color: gold;">You gained ${goldAmount} gold!</span>`);
+                logCombatMessage(`<span style="color: gold;">${goldAmount} 골드를 획득했습니다!</span>`);
                 updateStatusDisplay();
 
                 const monsterTierInfo = MONSTER_TIERS[gameState.currentCombatMonster.tier];
@@ -1205,14 +1211,14 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
                         }
                         const newItem = generateRandomItem(gameState.playerStats.base.level, rarityBonus);
                         gameState.playerStats.inventory.push(newItem);
-                        logCombatMessage(`<span style="color: gold;">The monster dropped: </span><span style="color:${RARITY_CONFIG[newItem.rarity].color};">${newItem.name}</span>!`);
+                        logCombatMessage(`<span style="color: gold;">${gameState.currentCombatMonster.name}이(가) 아이템을 드랍했습니다: </span><span style="color:${RARITY_CONFIG[newItem.rarity].color};">${newItem.name}</span>!`);
                     } else {
-                        logCombatMessage("<span style='color: lightcoral;'>Your inventory is full! The monster's drop was lost.</span>");
+                        logCombatMessage("<span style='color: lightcoral;'>인벤토리가 가득 찼습니다! 몬스터의 드랍 아이템을 잃었습니다.</span>");
                     }
                 }
 
                 if (Math.random() < TREASURE_CHEST_CHANCE) {
-                    logCombatMessage("<span style='color: gold;'>A treasure chest appears!</span>");
+                    logCombatMessage("<span style='color: gold;'>보물 상자가 나타났습니다!</span>");
                     const numberOfItems = 2 + Math.floor(Math.random() * 3);
 
                     for (let i = 0; i < numberOfItems; i++) {
@@ -1220,9 +1226,9 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
                             const rarityBonus = 50 + Math.random() * 50;
                             const newItem = generateRandomItem(gameState.playerStats.base.level, rarityBonus);
                             gameState.playerStats.inventory.push(newItem);
-                            logCombatMessage(`<span style="color: gold;">You found: </span><span style="color:${RARITY_CONFIG[newItem.rarity].color};">${newItem.name}</span>!`);
+                            logCombatMessage(`<span style="color: gold;">획득: </span><span style="color:${RARITY_CONFIG[newItem.rarity].color};">${newItem.name}</span>!`);
                         } else {
-                            logCombatMessage("<span style='color: lightcoral;'>Your inventory is full! An item from the chest was lost.</span>");
+                            logCombatMessage("<span style='color: lightcoral;'>인벤토리가 가득 찼습니다! 보물 상자 아이템 중 일부를 잃었습니다.</span>");
                             break;
                         }
                     }
@@ -1392,7 +1398,7 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
 
 // After skill, check if monster was defeated
         if (currentCombatMonster.hp <= 0) {
-            logCombatMessage("<span style='color: gold;'>The monster has been defeated by a skill!</span>");
+            logCombatMessage("<span style='color: gold;'>스킬에 의해 몬스터를 물리쳤습니다!</span>");
             gainExperience(currentCombatMonster.level * XP_GAIN_MULTIPLIER);
             setTimeout(() => endCombat(true), 1000);
         } else {
@@ -1415,7 +1421,7 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
 
         processStatusEffects(gameState.currentCombatMonster);
         if (gameState.currentCombatMonster.hp <= 0) {
-            logCombatMessage("<span style='color: gold;'>The monster was defeated by a status effect!</span>");
+            logCombatMessage("<span style='color: gold;'>몬스터가 상태 이상으로 쓰러졌습니다!</span>");
             gainExperience(gameState.currentCombatMonster.level * XP_GAIN_MULTIPLIER);
             setTimeout(() => endCombat(true), 1000);
             return;
@@ -1432,12 +1438,12 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
         gameState.currentCombatMonster.hp -= damage;
         gameState.currentCombatMonster.hp = Math.max(0, gameState.currentCombatMonster.hp);
 
-        let critString = isCritical ? ` <span style="color: lightcoral;">(CRIT!)</span>` : '';
-        logCombatMessage(`You dealt ${damage} ${attackType} damage${critString}.`);
+        let critString = isCritical ? ` <span style="color: lightcoral;">(치명타!)</span>` : '';
+        logCombatMessage(`당신이 ${damage}의 ${attackType} 피해를 입혔습니다!${critString}`);
 
         updatePokemonBattleMonsterUI(); // Update new UI monster HP
         if (gameState.currentCombatMonster.hp <= 0) {
-            logCombatMessage("<span style='color: gold;'>The monster has been defeated!</span>");
+            logCombatMessage("<span style='color: gold;'>몬스터를 물리쳤습니다!</span>");
             gainExperience(gameState.currentCombatMonster.level * XP_GAIN_MULTIPLIER);
             setTimeout(() => endCombat(true), 1000);
         } else {
@@ -1448,7 +1454,7 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
     export function monsterTurn() {
         processStatusEffects(gameState.playerStats);
         if (gameState.playerStats.base.hp <= 0) {
-            logCombatMessage("<span style='color: lightcoral;'>You were defeated by a status effect!</span>");
+            logCombatMessage("<span style='color: lightcoral;'>상태 이상으로 인해 쓰러졌습니다!</span>");
             setTimeout(gameOver, 1000);
             return;
         }
@@ -1483,14 +1489,14 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
             const skillToUse = MONSTER_SKILLS[skillToUseId]; // Ensure to get from MONSTER_SKILLS
 
             if (skillToUse) {
-                logCombatMessage(`<span style="color: lightcoral;">${monster.name} uses ${skillToUse.name}!</span>`);
+                logCombatMessage(`<span style="color: lightcoral;">${monster.name}이(가) ${skillToUse.name}을(를) 사용했습니다!</span>`);
                 skillToUse.effect(monster, gameState.playerStats); // Monster's effect targets player
                 monster.skillCooldowns[skillToUseId] = skillToUse.cooldown; // Set skill cooldown
                 updatePokemonBattleMonsterUI(); // Update monster HP/MP if skill healed, etc.
                 updatePokemonBattlePlayerUI(); // Update player HP/MP if skill damaged, etc.
 
                 if (gameState.playerStats.base.hp <= 0) {
-                    logCombatMessage("<span style='color: lightcoral;'>You have been defeated by a monster skill!</span>");
+                    logCombatMessage("<span style='color: lightcoral;'>몬스터 스킬에 의해 쓰러졌습니다!</span>");
                     setTimeout(gameOver, 1000);
                     return;
                 }
@@ -1513,13 +1519,13 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
         gameState.playerStats.base.hp -= damage;
         gameState.playerStats.base.hp = Math.max(0, gameState.playerStats.base.hp);
 
-        let critString = isCritical ? ` <span style="color: lightcoral;">(CRIT!)</span>` : '';
-        logCombatMessage(`The monster dealt ${damage} damage${critString}.`);
+        let critString = isCritical ? ` <span style="color: lightcoral;">(치명타!)</span>` : '';
+        logCombatMessage(`몬스터가 ${damage}의 피해를 입혔습니다!${critString}`);
 
         updatePokemonBattlePlayerUI(); // Update new UI player HP
         updateStatusDisplay();
         if (gameState.playerStats.base.hp <= 0) {
-            logCombatMessage("<span style='color: lightcoral;'>You have been defeated!</span>");
+            logCombatMessage("<span style='color: lightcoral;'>쓰러졌습니다!</span>");
             setTimeout(gameOver, 1000);
         } else {
             if (gameState.isAutoAttacking) {
@@ -1599,15 +1605,15 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
                 gameState.playerStats.inventory.push(newItem);
                 gameState.wanderingMerchant.stock.splice(merchantItemIndex, 1);
 
-                logCombatMessage(`<span style="color: mediumspringgreen;">Bought ${item.name} for ${item.price} gold.</span>`);
+                logCombatMessage(`<span style="color: mediumspringgreen;">${item.name}을(를) ${item.price} 골드에 구매했습니다.</span>`);
 
                 // Re-render the merchant's stock to show the item has been removed
                 renderMerchantStock(gameState.wanderingMerchant.stock, buyItem, showMerchantItemTooltip);
             } else {
-                logCombatMessage("<span style='color: red;'>Your inventory is full! Cannot buy item.</span>");
+                logCombatMessage("<span style='color: red;'>인벤토리가 가득 찼습니다! 아이템을 구매할 수 없습니다.</span>");
             }
         } else {
-            logCombatMessage("<span style='color: lightcoral;'>Not enough gold to buy that item!</span>");
+            logCombatMessage("<span style='color: lightcoral;'>골드가 부족합니다!</span>");
         }
         updateStatusDisplay();
         renderPlayerSellInventory(gameState.playerStats.inventory, sellItem, showPlayerSellTooltip);
@@ -1621,7 +1627,7 @@ export function equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndex = nul
         const sellPrice = calculateSellPrice(item);
         gameState.playerStats.base.gold += sellPrice;
         gameState.playerStats.inventory.splice(itemIndex, 1);
-        logCombatMessage(`<span style="color: mediumspringgreen;">Sold ${item.name} for ${sellPrice} gold.</span>`);
+        logCombatMessage(`<span style="color: mediumspringgreen;">${item.name}을(를) ${sellPrice} 골드에 판매했습니다.</span>`);
 
         updateStatusDisplay();
         renderPlayerSellInventory(gameState.playerStats.inventory, sellItem, showPlayerSellTooltip);

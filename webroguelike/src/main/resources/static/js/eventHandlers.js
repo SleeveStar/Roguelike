@@ -134,10 +134,13 @@ function handleKeyDown(event) {
     }
 
     // Check for map transitions first
-    if (!(newX >= 0 && newX < gameCanvas.width && newY >= 0 && newY < gameCanvas.height)) {
-        if (newX < 0) transitionMap('left'); else if (newX >= gameCanvas.width) transitionMap('right');
-        else if (newY < 0) transitionMap('up'); else if (newY >= gameCanvas.height) transitionMap('down');
-        return;
+    const mapGridWidthPixels = gameState.mapGrid[0].length * TILE_SIZE;
+    const mapGridHeightPixels = gameState.mapGrid.length * TILE_SIZE;
+
+    if (!(newX >= 0 && newX < mapGridWidthPixels && newY >= 0 && newY < mapGridHeightPixels)) {
+        if (newX < 0) transitionMap('left'); else if (newX >= mapGridWidthPixels) transitionMap('right');
+        else if (newY < 0) transitionMap('up'); else if (newY >= mapGridHeightPixels) transitionMap('down');
+        return;w
     }
 
     // Check for walkable tiles

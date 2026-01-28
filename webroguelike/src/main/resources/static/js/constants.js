@@ -92,13 +92,13 @@ export const MONSTER_TYPES = [
 ];
 
 export const RARITY_CONFIG = {
-    common:     { name: '일반',     color: '#ffffff', probability: 0.1,  budget: 5,  level_multiplier: 1.0, affixSlots: { min: 0, max: 1 },
+    common:     { name: '일반',     color: '#ffffff', probability: 40,  budget: 5,  level_multiplier: 1.0, affixSlots: { min: 0, max: 1 },
                     affixValues: {
                         physicalAttack: { min: 1, max: 2 }
                     },
                     possibleAffixes: ['physicalAttack']
                 },
-    uncommon:   { name: '고급',   color: '#87CEEB', probability: 30,  budget: 15, level_multiplier: 1.3, affixSlots: { min: 1, max: 1 },
+    uncommon:   { name: '고급',   color: '#87CEEB', probability: 29,  budget: 15, level_multiplier: 1.3, affixSlots: { min: 1, max: 1 },
                     affixValues: {
                         physicalAttack: { min: 2, max: 4 },
                         magicalAttack: { min: 2, max: 4 }
@@ -115,7 +115,7 @@ export const RARITY_CONFIG = {
                     },
                     possibleAffixes: ['physicalAttack', 'critChance', 'lifesteal', 'statusEffectBleed', 'elementalDamage']
                 },
-    unique:     { name: '특별',     color: '#FF69B4', probability: 10,   budget: 60, level_multiplier: 2.0, affixSlots: { min: 2, max: 3 },
+    unique:     { name: '특별',     color: '#FF69B4', probability: 8,   budget: 60, level_multiplier: 2.0, affixSlots: { min: 2, max: 3 },
                     affixValues: { 
                         physicalAttack: { min: 7, max: 12 },
                         critChance: { min: 0.03, max: 0.05 },
@@ -125,7 +125,7 @@ export const RARITY_CONFIG = {
                     },
                     possibleAffixes: ['physicalAttack', 'critChance', 'lifesteal', 'statusEffectPoison', 'elementalDamage']
                 },
-    legendary:  { name: '전설',  color: '#ff9900', probability: 3,   budget: 120, level_multiplier: 2.5, affixSlots: { min: 2, max: 4 },
+    legendary:  { name: '전설',  color: '#ff9900', probability: 4,   budget: 120, level_multiplier: 2.5, affixSlots: { min: 2, max: 4 },
                     affixValues: {
                         physicalAttack: { min: 12, max: 20 },
                         critChance: { min: 0.05, max: 0.08 },
@@ -136,7 +136,7 @@ export const RARITY_CONFIG = {
                     },
                     possibleAffixes: ['physicalAttack', 'critChance', 'critDamage', 'lifesteal', 'statusEffectBleed', 'elementalDamage']
                 },
-    epic:       { name: '서사',       color: '#FFFF00', probability: 1.5, budget: 200, level_multiplier: 3.0, affixSlots: { min: 3, max: 4 },
+    epic:       { name: '서사',       color: '#FFFF00', probability: 2, budget: 200, level_multiplier: 3.0, affixSlots: { min: 3, max: 4 },
                     affixValues: {
                         physicalAttack: { min: 24, max: 36 },
                         critChance: { min: 0.08, max: 0.12 },
@@ -147,7 +147,7 @@ export const RARITY_CONFIG = {
                     },
                     possibleAffixes: ['physicalAttack', 'critChance', 'critDamage', 'lifesteal', 'statusEffectPoison', 'elementalDamage']
                 },
-    mystic:     { name: '신화',     color: '#FF0000', probability: 0.4, budget: 350, level_multiplier: 3.8, affixSlots: { min: 4, max: 5 },
+    mystic:     { name: '신화',     color: '#FF0000', probability: 1.8, budget: 350, level_multiplier: 3.8, affixSlots: { min: 4, max: 5 },
                     affixValues: { 
                         physicalAttack: { min: 36, max: 60 },
                         critChance: { min: 0.12, max: 0.18 },
@@ -158,7 +158,7 @@ export const RARITY_CONFIG = {
                     },
                     possibleAffixes: ['physicalAttack', 'critChance', 'critDamage', 'lifesteal', 'statusEffectBleed', 'elementalDamage']
                 },
-    legacy:     { name: '유산',     color: '#00FFFF', probability: 40, budget: 600, level_multiplier: 4.8, affixSlots: { min: 5, max: 6 },
+    legacy:     { name: '유산',     color: '#00FFFF', probability: 0.2, budget: 600, level_multiplier: 4.8, affixSlots: { min: 5, max: 6 },
                     affixValues: {
                         physicalAttack: { min: 60, max: 96 },
                         critChance: { min: 0.18, max: 0.25 },
