@@ -63,19 +63,19 @@ const FOREST_TILE_PROPERTIES = {
         walkable: false,
         spawnable: false,
         path: '/img/forest/WOOD_1.png',
-        baseWeight: 1
+        baseWeight: 0.6
     },
     [FOREST_TILE_TYPES.WOOD_2]: {
         walkable: false,
         spawnable: false,
         path: '/img/forest/WOOD_2.png',
-        baseWeight: 1
+        baseWeight: 0.6
     },
     [FOREST_TILE_TYPES.WOOD_3]: {
         walkable: false,
         spawnable: false,
         path: '/img/forest/WOOD_3.png',
-        baseWeight: 1
+        baseWeight: 0.6
     },
 
     [FOREST_TILE_TYPES.LAKE_UL]: { walkable: false, spawnable: false, path: '/img/forest/LAKE_LEFT_TOP.png', baseWeight: 0.2 },
