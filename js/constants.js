@@ -22,6 +22,8 @@ export const BOSS_CHANCE_PERCENT = 5;
 export const XP_GAIN_MULTIPLIER = 50;
 export const ESCAPE_CHANCE = 0.5;
 export const LEVEL_UP_STAT_POINTS = 5;
+export const LEVEL_UP_SKILL_POINTS = 1; // 스킬 레벨업 시 획득하는 스킬 포인트
+
 export const ITEM_DROP_CHANCE = 0.75;
 export const TREASURE_CHEST_CHANCE = 0.1;
 export const INVENTORY_SIZE = 36; // Changed to 36 for 6x6
@@ -47,56 +49,56 @@ export const BIOMES = {
 };
 
 export const MONSTER_TYPES = [
-    { name: "BLUE_SLIME",      archetype: 'tanky_slow', biomes: ['FOREST', 'CAVE'] },
-    { name: "BONE_SLIME",      archetype: 'tanky_slow', biomes: ['ICE', 'CAVE'] },
-    { name: "CRYSTAL_GOLEM",   archetype: 'tank', biomes: ['ICE', 'CAVE'] },
-    { name: "DARK_KHIGHT",     archetype: 'bruiser', biomes: ['CAVE'] },
-    { name: "EARTH_TURTLE",    archetype: 'tank', biomes: ['FOREST'] },
-    { name: "EARTH_WORM",      archetype: 'standard', biomes: ['FOREST', 'CAVE'] },
-    { name: "ENT_WOOD",        archetype: 'tank', biomes: ['FOREST'] },
-    { name: "FIRE_WORM",       archetype: 'caster', biomes: ['VOLCANO'] },
-    { name: "FROG_SHAMAN",     archetype: 'caster', biomes: ['FOREST'] },
-    { name: "GARGOYLE",        archetype: 'rusher', biomes: ['CAVE', 'VOLCANO'] },
-    { name: "GHOST",           archetype: 'evasive', biomes: ['ICE', 'CAVE'] },
-    { name: "GOBLIN",          archetype: 'standard', biomes: ['FOREST', 'CAVE'] },
-    { name: "GREEN_SLIME",     archetype: 'tanky_slow', biomes: ['FOREST'] },
-    { name: "GREY_WOLF",       archetype: 'rusher', biomes: ['FOREST'] },
-    { name: "GROUND_DRAGON",   archetype: 'elite', biomes: ['VOLCANO', 'FOREST'] }, // Ground Dragon could be in rocky forests or volcanic
-    { name: "ICE_DRAGON",      archetype: 'elite', biomes: ['ICE'] },
-    { name: "ICE_LICH",        archetype: 'caster', biomes: ['ICE'] },
-    { name: "ICE_SKULKING",    archetype: 'rusher', biomes: ['ICE'] },
-    { name: "KOBOLT",          archetype: 'standard', biomes: ['FOREST', 'CAVE'] },
-    { name: "LAVA_GOLEM",      archetype: 'tank', biomes: ['VOLCANO'] },
-    { name: "LIZARD_MAN",      archetype: 'standard', biomes: ['FOREST', 'VOLCANO'] }, // Lizard Man in forests or volcanic areas
-    { name: "MIMIC",           archetype: 'bruiser', biomes: ['CAVE'] },
-    { name: "ORC_SHAMAN",      archetype: 'caster', biomes: ['FOREST'] },
-    { name: "ORC_WARRIOR",     archetype: 'bruiser', biomes: ['FOREST'] },
-    { name: "POISON_DRAGON",   archetype: 'elite', biomes: ['FOREST'] }, // Poison Dragon for swampy/poisonous forests (if we add swamp later)
-    { name: "POISON_LICH",     archetype: 'caster', biomes: ['FOREST'] },
-    { name: "POISON_MUSHMAN",  archetype: 'caster', biomes: ['FOREST'] },
-    { name: "POISON_SIDE",     archetype: 'standard', biomes: ['FOREST'] },
-    { name: "RAPTOR_ARCHER",   archetype: 'glass_cannon', biomes: ['FOREST'] },
-    { name: "RAPTOR_WARRIOR",  archetype: 'rusher', biomes: ['FOREST'] },
-    { name: "RED_DRAGON",      archetype: 'elite', biomes: ['VOLCANO'] },
-    { name: "RED_OGRE",        archetype: 'bruiser', biomes: ['VOLCANO'] },
-    { name: "RED_RIZARDMAN",   archetype: 'standard', biomes: ['VOLCANO'] },
-    { name: "ROCK_GOLEM",      archetype: 'tank', biomes: ['CAVE', 'VOLCANO'] },
-    { name: "SATANIC_GARGOYLE",archetype: 'elite', biomes: ['CAVE', 'VOLCANO'] },
-    { name: "SKEL_WARRIOR",    archetype: 'standard', biomes: ['ICE', 'CAVE'] },
-    { name: "SKUL_LICH",       archetype: 'caster', biomes: ['ICE', 'CAVE'] },
-    { name: "WEREWOLF",        archetype: 'bruiser', biomes: ['FOREST', 'CAVE'] },
-    { name: "WOOD_WARM",       archetype: 'standard', biomes: ['FOREST'] },
-    { name: "ZOMBIE",          archetype: 'tanky_slow', biomes: ['CAVE'] }
+    { name: "BLUE_SLIME",      archetype: 'tanky_slow', biomes: ['FOREST', 'CAVE'], skills: ["acidSpit", "regeneration"] },
+    { name: "BONE_SLIME",      archetype: 'tanky_slow', biomes: ['ICE', 'CAVE'], skills: ["acidSpit", "infectiousBite"] },
+    { name: "CRYSTAL_GOLEM",   archetype: 'tank', biomes: ['ICE', 'CAVE'], skills: ["stoneSkin", "slam", "regeneration"] },
+    { name: "DARK_KHIGHT",     archetype: 'bruiser', biomes: ['CAVE'], skills: ["berserk", "shadowStep", "slam"] },
+    { name: "EARTH_TURTLE",    archetype: 'tank', biomes: ['FOREST'], skills: ["stoneSkin", "groundStomp", "regeneration"] },
+    { name: "EARTH_WORM",      archetype: 'standard', biomes: ['FOREST', 'CAVE'], skills: ["groundStomp", "regeneration"] },
+    { name: "ENT_WOOD",        archetype: 'tank', biomes: ['FOREST'], skills: ["stoneSkin", "groundStomp", "toxicCloud"] },
+    { name: "FIRE_WORM",       archetype: 'caster', biomes: ['VOLCANO'], skills: ["fireBreath", "acidSpit"] },
+    { name: "FROG_SHAMAN",     archetype: 'caster', biomes: ['FOREST'], skills: ["toxicCloud", "healingAuraMonster", "disorientingGaze"] },
+    { name: "GARGOYLE",        archetype: 'rusher', biomes: ['CAVE', 'VOLCANO'], skills: ["leapAttack", "slam", "stoneSkin"] },
+    { name: "GHOST",           archetype: 'evasive', biomes: ['ICE', 'CAVE'], skills: ["shadowBind", "evadeBoost", "blindingFlash"] },
+    { name: "GOBLIN",          archetype: 'standard', biomes: ['FOREST', 'CAVE'], skills: ["leapAttack", "venomousBite"] },
+    { name: "GREEN_SLIME",     archetype: 'tanky_slow', biomes: ['FOREST'], skills: ["acidSpit", "regeneration"] },
+    { name: "GREY_WOLF",       archetype: 'rusher', biomes: ['FOREST'], skills: ["charge", "venomousBite"] },
+    { name: "GROUND_DRAGON",   archetype: 'elite', biomes: ['VOLCANO', 'FOREST'], skills: ["groundStomp", "fireBreath", "berserk"] }, // Ground Dragon could be in rocky forests or volcanic
+    { name: "ICE_DRAGON",      archetype: 'elite', biomes: ['ICE'], skills: ["frostNova", "iceShard", "berserk"] },
+    { name: "ICE_LICH",        archetype: 'caster', biomes: ['ICE'], skills: ["frostNova", "iceShard", "shadowBind"] },
+    { name: "ICE_SKULKING",    archetype: 'rusher', biomes: ['ICE'], skills: ["iceShard", "shadowStep", "evadeBoost"] },
+    { name: "KOBOLT",          archetype: 'standard', biomes: ['FOREST', 'CAVE'], skills: ["leapAttack", "slam"] },
+    { name: "LAVA_GOLEM",      archetype: 'tank', biomes: ['VOLCANO'], skills: ["stoneSkin", "groundStomp", "fireBreath"] },
+    { name: "LIZARD_MAN",      archetype: 'standard', biomes: ['FOREST', 'VOLCANO'], skills: ["acidSpit", "leapAttack"] }, // Lizard Man in forests or volcanic areas
+    { name: "MIMIC",           archetype: 'bruiser', biomes: ['CAVE'], skills: ["slam", "berserk", "disorientingGaze"] },
+    { name: "ORC_SHAMAN",      archetype: 'caster', biomes: ['FOREST'], skills: ["groundStomp", "healingAuraMonster", "berserk"] },
+    { name: "ORC_WARRIOR",     archetype: 'bruiser', biomes: ['FOREST'], skills: ["slam", "charge", "berserk"] },
+    { name: "POISON_DRAGON",   archetype: 'elite', biomes: ['FOREST'], skills: ["toxicCloud", "venomousBite", "berserk"] }, // Poison Dragon for swampy/poisonous forests (if we add swamp later)
+    { name: "POISON_LICH",     archetype: 'caster', biomes: ['FOREST'], skills: ["toxicCloud", "shadowBind", "drainLife"] },
+    { name: "POISON_MUSHMAN",  archetype: 'caster', biomes: ['FOREST'], skills: ["poisonSpit", "toxicCloud"] },
+    { name: "POISON_SIDE",     archetype: 'standard', biomes: ['FOREST'], skills: ["venomousBite", "toxicCloud"] },
+    { name: "RAPTOR_ARCHER",   archetype: 'glass_cannon', biomes: ['FOREST'], skills: ["spikeBarrage", "leapAttack"] },
+    { name: "RAPTOR_WARRIOR",  archetype: 'rusher', biomes: ['FOREST'], skills: ["charge", "venomousBite"] },
+    { name: "RED_DRAGON",      archetype: 'elite', biomes: ['VOLCANO'], skills: ["fireBreath", "charge", "berserk"] },
+    { name: "RED_OGRE",        archetype: 'bruiser', biomes: ['VOLCANO'], skills: ["slam", "berserk", "groundStomp"] },
+    { name: "RED_RIZARDMAN",   archetype: 'standard', biomes: ['VOLCANO'], skills: ["fireBreath", "leapAttack"] },
+    { name: "ROCK_GOLEM",      archetype: 'tank', biomes: ['CAVE', 'VOLCANO'], skills: ["stoneSkin", "groundStomp", "slam"] },
+    { name: "SATANIC_GARGOYLE",archetype: 'elite', biomes: ['CAVE', 'VOLCANO'], skills: ["fireBreath", "shadowStep", "berserk"] },
+    { name: "SKEL_WARRIOR",    archetype: 'standard', biomes: ['ICE', 'CAVE'], skills: ["slam", "venomousBite"] },
+    { name: "SKUL_LICH",       archetype: 'caster', biomes: ['ICE', 'CAVE'], skills: ["shadowBind", "drainLife", "frostNova"] },
+    { name: "WEREWOLF",        archetype: 'bruiser', biomes: ['FOREST', 'CAVE'], skills: ["frenzy", "venomousBite", "charge"] },
+    { name: "WOOD_WARM",       archetype: 'standard', biomes: ['FOREST'], skills: ["groundStomp", "toxicCloud"] },
+    { name: "ZOMBIE",          archetype: 'tanky_slow', biomes: ['CAVE'], skills: ["infectiousBite", "slam", "regeneration"] }
 ];
 
 export const RARITY_CONFIG = {
-    common:     { name: '일반',     color: '#ffffff', probability: 0.1,  budget: 5,  level_multiplier: 1.0, affixSlots: { min: 0, max: 1 },
+    common:     { name: '일반',     color: '#ffffff', probability: 40,  budget: 5,  level_multiplier: 1.0, affixSlots: { min: 0, max: 1 },
                     affixValues: {
                         physicalAttack: { min: 1, max: 2 }
                     },
                     possibleAffixes: ['physicalAttack']
                 },
-    uncommon:   { name: '고급',   color: '#87CEEB', probability: 30,  budget: 15, level_multiplier: 1.3, affixSlots: { min: 1, max: 1 },
+    uncommon:   { name: '고급',   color: '#87CEEB', probability: 29,  budget: 15, level_multiplier: 1.3, affixSlots: { min: 1, max: 1 },
                     affixValues: {
                         physicalAttack: { min: 2, max: 4 },
                         magicalAttack: { min: 2, max: 4 }
@@ -113,7 +115,7 @@ export const RARITY_CONFIG = {
                     },
                     possibleAffixes: ['physicalAttack', 'critChance', 'lifesteal', 'statusEffectBleed', 'elementalDamage']
                 },
-    unique:     { name: '특별',     color: '#FF69B4', probability: 10,   budget: 60, level_multiplier: 2.0, affixSlots: { min: 2, max: 3 },
+    unique:     { name: '특별',     color: '#FF69B4', probability: 8,   budget: 60, level_multiplier: 2.0, affixSlots: { min: 2, max: 3 },
                     affixValues: { 
                         physicalAttack: { min: 7, max: 12 },
                         critChance: { min: 0.03, max: 0.05 },
@@ -123,7 +125,7 @@ export const RARITY_CONFIG = {
                     },
                     possibleAffixes: ['physicalAttack', 'critChance', 'lifesteal', 'statusEffectPoison', 'elementalDamage']
                 },
-    legendary:  { name: '전설',  color: '#ff9900', probability: 3,   budget: 120, level_multiplier: 2.5, affixSlots: { min: 2, max: 4 },
+    legendary:  { name: '전설',  color: '#ff9900', probability: 4,   budget: 120, level_multiplier: 2.5, affixSlots: { min: 2, max: 4 },
                     affixValues: {
                         physicalAttack: { min: 12, max: 20 },
                         critChance: { min: 0.05, max: 0.08 },
@@ -134,7 +136,7 @@ export const RARITY_CONFIG = {
                     },
                     possibleAffixes: ['physicalAttack', 'critChance', 'critDamage', 'lifesteal', 'statusEffectBleed', 'elementalDamage']
                 },
-    epic:       { name: '서사',       color: '#FFFF00', probability: 1.5, budget: 200, level_multiplier: 3.0, affixSlots: { min: 3, max: 4 },
+    epic:       { name: '서사',       color: '#FFFF00', probability: 2, budget: 200, level_multiplier: 3.0, affixSlots: { min: 3, max: 4 },
                     affixValues: {
                         physicalAttack: { min: 24, max: 36 },
                         critChance: { min: 0.08, max: 0.12 },
@@ -145,7 +147,7 @@ export const RARITY_CONFIG = {
                     },
                     possibleAffixes: ['physicalAttack', 'critChance', 'critDamage', 'lifesteal', 'statusEffectPoison', 'elementalDamage']
                 },
-    mystic:     { name: '신화',     color: '#FF0000', probability: 0.4, budget: 350, level_multiplier: 3.8, affixSlots: { min: 4, max: 5 },
+    mystic:     { name: '신화',     color: '#FF0000', probability: 1.8, budget: 350, level_multiplier: 3.8, affixSlots: { min: 4, max: 5 },
                     affixValues: { 
                         physicalAttack: { min: 36, max: 60 },
                         critChance: { min: 0.12, max: 0.18 },
@@ -156,7 +158,7 @@ export const RARITY_CONFIG = {
                     },
                     possibleAffixes: ['physicalAttack', 'critChance', 'critDamage', 'lifesteal', 'statusEffectBleed', 'elementalDamage']
                 },
-    legacy:     { name: '유산',     color: '#00FFFF', probability: 40, budget: 600, level_multiplier: 4.8, affixSlots: { min: 5, max: 6 },
+    legacy:     { name: '유산',     color: '#00FFFF', probability: 0.2, budget: 600, level_multiplier: 4.8, affixSlots: { min: 5, max: 6 },
                     affixValues: {
                         physicalAttack: { min: 60, max: 96 },
                         critChance: { min: 0.18, max: 0.25 },

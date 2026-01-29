@@ -4,11 +4,11 @@ export const gameCanvas = document.getElementById('gameCanvas');
 export const ctx = gameCanvas.getContext('2d');
 
 // Modals
-export const levelUpModal = document.getElementById('levelUpModal');
+// Removed old levelUpModal references
 export const restartModal = document.getElementById('restartModal');
 export const finalScoreSpan = document.getElementById('finalScore');
 export const restartButton = document.getElementById('restartButton');
-export const closeLevelUpModal = document.getElementById('closeLevelUpModal');
+
 
 // Right-side Info Panel
 export const infoPanelElement = document.getElementById('infoPanel');
@@ -21,6 +21,7 @@ export const inventoryBtn = document.getElementById('inventoryBtn');
 export const closeInventoryBtn = document.getElementById('closeInventoryBtn');
 export const bagGridElement = document.querySelector('.bag-grid');
 export const itemTooltipElement = document.getElementById('itemTooltip');
+export const skillTooltipElement = document.getElementById('skillTooltip'); // New skill tooltip element
 export const eqSlotElements = document.querySelectorAll('.eq-slot');
 export const prevPageBtn = document.getElementById('prevPageBtn');
 export const pageNumberDisplay = document.getElementById('pageNumberDisplay');
@@ -69,3 +70,14 @@ export const battleButtons = document.getElementById('battleButtons');
 export const battleAttackBtn = document.getElementById('battleAttackBtn');
 export const battleAutoAttackBtn = document.getElementById('battleAutoAttackBtn');
 export const battleRunAwayBtn = document.getElementById('battleRunAwayBtn');
+
+// Skill Tree Modal Elements
+export const skillTreeBtn = document.getElementById('skillTreeBtn');
+export const skillTreeModal = document.getElementById('skillTreeModal');
+export const closeSkillTreeModal = document.getElementById('closeSkillTreeModal');
+export const skillPointsDisplay = document.getElementById('skillPointsDisplay');
+export const skillTreeTabs = document.querySelector('.skill-tree-tabs');
+export const skillTreeArea = document.getElementById('skill-tree-area');
+export const skillSlotBarManagement = document.getElementById('skill-slot-bar-management');
+export const skillSlotBoxes = document.querySelectorAll('.skill-slot-box');
+export const tabBtns = document.querySelectorAll('.tab-btn');

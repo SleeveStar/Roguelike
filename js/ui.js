@@ -1,19 +1,16 @@
 // ui.js
 import { gameState } from './gameState.js';
+import { learnSkill, equipSkillToSlot, useSkill, playerTurn, monsterTurn, setCombatButtonsEnabled, endCombat, toggleAutoAttack } from './gameLogic.js'; // Import gameLogic functions
 import {
-    ctx, inventoryOverlayElement, itemTooltipElement,
+    ctx, inventoryOverlayElement, itemTooltipElement, skillTooltipElement, // skillTooltipElement 추가
     merchantOverlayElement, merchantStockGridElement, playerSellGridElement,
     merchantPlayerGoldAmountElement, gameCanvas, allocateButtons, eqSlotElements,
-    levelUpModal, sidePanelEquipment, infoLogElement,
-    // New Battle UI elements
-    battleLog, battleMonsterName, battleMonsterLevel, battleMonsterHpBar,
-    battleMonsterHp, battleMonsterMaxHp, battleMonsterSprite, battlePlayerName,
-    battlePlayerLevel, battlePlayerHpBar, battlePlayerHp, battlePlayerMaxHp,
-    battlePlayerMpBar, battlePlayerMp, battlePlayerMaxMp, battlePlayerSprite,
-    // Pagination Elements
-    prevPageBtn, pageNumberDisplay, nextPageBtn
+    // Removed old levelUpModal reference
+    sidePanelEquipment, infoLogElement,
+    skillTreeModal, closeSkillTreeModal, skillPointsDisplay, skillTreeTabs, skillTreeArea, skillSlotBarManagement, skillSlotBoxes, tabBtns, battleButtons, battleAttackBtn, battleAutoAttackBtn, battleRunAwayBtn // New Skill Tree UI elements & battle buttons for renderCombatSkillBar
 } from './domElements.js';
-import { TILE_SIZE, RARITY_CONFIG, AFFIX_TYPES, INVENTORY_SIZE, EQUIPMENT_SETS, BIOMES } from './constants.js';
+import { SKILLS, MONSTER_SKILLS } from './skills.js'; // Import SKILLS and MONSTER_SKILLS
+import { TILE_SIZE, RARITY_CONFIG, AFFIX_TYPES, INVENTORY_SIZE, EQUIPMENT_SETS, BIOMES, ESCAPE_CHANCE } from './constants.js'; // Added ESCAPE_CHANCE
 import { playerImage, goldIconImage, healingBlockImage, monsterImageCache, tileImageCache, getCurrentActiveTileSet } from './imageLoader.js';
 
 export function initUI() {
@@ -351,15 +348,14 @@ export function updateStatusDisplay() {
     for (const slot in equipment) {
         const item = equipment[slot];
         if (!item) continue;
-        if (item.stats) {
-            for (const stat in item.stats) {
-                if (bonusStats.hasOwnProperty(stat)) {
-                    bonusStats[stat] += item.stats[stat];
-                }
-            }
-        }
-        if (item.affixes) {
-            item.affixes.forEach(affix => {
+                    if (item.stats) {
+                        for (const stat in item.stats) {
+                            if (bonusStats.hasOwnProperty(stat)) {
+                                bonusStats[stat] += item.stats[stat];
+                            }
+                        }
+                    }
+                    if (item.affixes) {            item.affixes.forEach(affix => {
                 const affixDef = AFFIX_TYPES[affix.type];
                 if (affixDef && affixDef.type === 'stat' && bonusStats.hasOwnProperty(affixDef.stat)) {
                     bonusStats[affixDef.stat] += affix.value;
@@ -433,6 +429,7 @@ export function initPokemonBattleUI(monster) {
     if (playerImage) {
         battlePlayerSprite.src = playerImage.src;
     }
+    renderCombatSkillBar(); // Render the skill bar initially
     updatePokemonBattlePlayerUI();
 }
 
@@ -448,6 +445,7 @@ export function updatePokemonBattlePlayerUI() {
     battlePlayerMpBar.style.width = `${mpPercent}%`;
     battlePlayerMp.textContent = Math.round(base.mp);
     battlePlayerMaxMp.textContent = derived.maxMp;
+    renderCombatSkillBar(); // Re-render the skill bar to update cooldowns/mana status
 }
 
 export function updatePokemonBattleMonsterUI() {
@@ -459,6 +457,75 @@ export function updatePokemonBattleMonsterUI() {
         battleMonsterHp.textContent = Math.round(monster.hp);
         battleMonsterMaxHp.textContent = monster.maxHp;
     }
+}
+
+// New function to render combat skill bar
+export function renderCombatSkillBar() {
+    // 기존의 모든 버튼을 제거 (스킬 버튼 및 빈 슬롯 버튼만 해당. 고정 버튼은 다시 append)
+    battleButtons.innerHTML = '';
+
+    // 공격 버튼 업데이트 및 재사용
+    battleAttackBtn.textContent = '공격';
+    battleAttackBtn.disabled = false; // 기본 공격은 항상 활성화
+    battleButtons.appendChild(battleAttackBtn);
+
+    // 스킬 버튼들 추가
+    gameState.playerStats.base.skillSlots.slots.forEach((skillId, index) => {
+        if (skillId) {
+            const skill = SKILLS[skillId];
+            if (skill) {
+                const skillBtn = document.createElement('button');
+                skillBtn.classList.add('battle-action-btn', 'skill-combat-btn');
+                skillBtn.dataset.skillIndex = index;
+                skillBtn.addEventListener('click', () => {
+                    useSkill(index); // Call useSkill from gameLogic.js
+                });
+
+                const onCooldown = gameState.skillCooldowns[skillId] && gameState.skillCooldowns[skillId] > 0;
+                const notEnoughMana = gameState.playerStats.base.mp < skill.cost;
+                skillBtn.disabled = onCooldown || notEnoughMana;
+
+                let buttonText = skill.name;
+                if (onCooldown) {
+                    buttonText += ` (${gameState.skillCooldowns[skillId]})`; // 남은 턴 수 표시
+                    skillBtn.title = `쿨다운 ${gameState.skillCooldowns[skillId]} 턴 남음`;
+                } else if (notEnoughMana) {
+                    skillBtn.title = `마나 부족 (${skill.cost} 필요)`;
+                } else {
+                    // 스킬 레벨에 맞는 설명이 배열로 되어있으므로, 현재 레벨 - 1 인덱스 사용
+                    const playerSkillLevel = gameState.playerStats.base.learnedSkills[skillId];
+                    if (playerSkillLevel > 0 && skill.description && skill.description[playerSkillLevel - 1]) {
+                         skillBtn.title = skill.description[playerSkillLevel - 1];
+                    } else {
+                         skillBtn.title = skill.name; // Fallback to skill name if no description
+                    }
+                }
+                skillBtn.textContent = buttonText;
+                battleButtons.appendChild(skillBtn);
+            }
+        } else {
+            // Empty slot visual
+            const emptySlotBtn = document.createElement('button');
+            emptySlotBtn.classList.add('battle-action-btn', 'skill-combat-btn', 'empty-slot');
+            emptySlotBtn.textContent = `${index + 1} (비어있음)`;
+            emptySlotBtn.disabled = true;
+            battleButtons.appendChild(emptySlotBtn);
+        }
+    });
+
+    // 자동 공격 버튼 업데이트 및 재사용
+    battleAutoAttackBtn.textContent = gameState.isAutoAttacking ? '자동 공격 중...' : '자동 공격';
+    battleAutoAttackBtn.disabled = false; // 항상 활성화
+    battleButtons.appendChild(battleAutoAttackBtn);
+
+    // 도망가기 버튼 업데이트 및 재사용
+    battleRunAwayBtn.textContent = '도망가기';
+    battleRunAwayBtn.disabled = false; // 항상 활성화
+    battleButtons.appendChild(battleRunAwayBtn);
+
+    // setCombatButtonsEnabled는 이 함수 밖에서 호출되어야 할 것 같습니다.
+    setCombatButtonsEnabled(true); // 이 함수는 gameLogic.js에서 가져온 함수이므로 전역으로 노출되어 있다면 바로 사용 가능.
+                               // renderCombatSkillBar가 전투 UI 렌더링의 주된 역할이므로 여기에 두는 것이 합리적.
 }
 
 // --- Legacy / Other UI Functions ---
@@ -779,4 +846,375 @@ export function renderPlayerSellInventory(inventory, sellItemCallback, showPlaye
 
 export function updateMerchantPlayerGoldDisplay() {
     merchantPlayerGoldAmountElement.textContent = gameState.playerStats.base.gold;
+}
+
+// New Skill Tree UI Functions
+export function showSkillTreeModal() {
+    skillTreeModal.classList.remove('hidden');
+    // Set up tab event listeners once
+    if (!skillTreeTabs.dataset.listenersAdded) {
+        tabBtns.forEach(button => {
+            button.addEventListener('click', () => {
+                tabBtns.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                renderSkillTree(button.dataset.tree);
+            });
+        });
+        skillTreeTabs.dataset.listenersAdded = 'true';
+    }
+
+    // Add drag-out functionality for skills from combat slots
+    // This listener should be on the modal itself to catch drops outside of skill-slot-box elements
+    if (!skillTreeModal.dataset.dragListenersAdded) {
+        skillTreeModal.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Allow drop
+        });
+
+        skillTreeModal.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const skillId = e.dataTransfer.getData('text/plain');
+            const sourceSlotIndexStr = e.dataTransfer.getData('text/slotIndex');
+            const droppedOnSkillSlotBox = e.target.closest('.skill-slot-box'); // Check if dropped directly on a skill slot box
+            
+            // Check if the drop target is not a skill slot box, indicating a drag-out
+            if (skillId && sourceSlotIndexStr && !droppedOnSkillSlotBox) {
+                const sourceSlotIndex = parseInt(sourceSlotIndexStr);
+                equipSkillToSlot(null, sourceSlotIndex);
+                renderSkillSlotManagementBar(); // Re-render the bar after unequipping
+            }
+        });
+        skillTreeModal.dataset.dragListenersAdded = 'true';
+    }
+
+    // Call render functions for initial display
+    document.getElementById('skillPointsDisplay').textContent = gameState.playerStats.base.availableSkillPoints;
+    renderSkillTree(skillTreeTabs.querySelector('.tab-btn.active').dataset.tree || 'melee'); // Render active tab or default to melee
+    renderSkillSlotManagementBar();
+}
+
+// Helper to create skill tooltip content
+export function createSkillTooltipContent(skillId) {
+    const skill = SKILLS[skillId];
+    if (!skill) return "스킬 정보를 찾을 수 없습니다.";
+
+    const playerBase = gameState.playerStats.base;
+    const currentLevel = playerBase.learnedSkills[skillId] || 0;
+    const nextLevel = currentLevel + 1;
+
+    let content = `
+        <div class="skill-tooltip-name">${skill.name}</div>
+        <div class="skill-tooltip-type">${skill.type === 'active' ? '액티브' : '패시브'} 스킬</div>
+    `;
+
+    // 현재 레벨 정보
+    if (currentLevel > 0) {
+        content += `<div class="skill-tooltip-level">현재 레벨: ${currentLevel}/${skill.maxLevel}</div>`;
+        content += `<div class="skill-tooltip-description">${skill.description[currentLevel - 1]}</div>`;
+    } else {
+        content += `<div class="skill-tooltip-level">습득 가능</div>`;
+    }
+
+    // 다음 레벨 정보 (최대 레벨이 아닌 경우)
+    if (nextLevel <= skill.maxLevel) {
+        content += `<div class="skill-tooltip-next-level-title">--- 다음 레벨 (${nextLevel}) ---</div>`;
+        content += `<div class="skill-tooltip-next-description">${skill.description[nextLevel - 1]}</div>`;
+        if (skill.costPerLevel) {
+            content += `<div class="skill-tooltip-cost">요구 스킬 포인트: ${skill.costPerLevel}</div>`;
+        }
+    }
+
+    // 종속성 정보
+    if (skill.dependencies && skill.dependencies.length > 0) {
+        content += `<div class="skill-tooltip-dependencies-title">--- 선행 스킬 ---</div>`;
+        skill.dependencies.forEach(depId => {
+            const depSkill = SKILLS[depId];
+            const depLevel = playerBase.learnedSkills[depId] || 0;
+            const metCondition = depSkill && depLevel === depSkill.maxLevel;
+            content += `<div class="skill-tooltip-dependency ${metCondition ? 'met' : 'unmet'}">
+                ${depSkill ? depSkill.name : '알 수 없는 스킬'} (${depLevel}/${depSkill.maxLevel})
+            </div>`;
+        });
+    }
+
+    return content;
+}
+
+export function showSkillTooltip(event, skillId) {
+
+    skillTooltipElement.innerHTML = createSkillTooltipContent(skillId);
+    skillTooltipElement.classList.remove('hidden');
+    skillTooltipElement.style.opacity = 1;
+
+    // Get the skill node that triggered the event
+    const skillNode = event.currentTarget;
+    const skillNodeRect = skillNode.getBoundingClientRect();
+
+    const tooltipWidth = skillTooltipElement.offsetWidth;
+    const tooltipHeight = skillTooltipElement.offsetHeight;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    const padding = 10; // Reduced padding for closer placement
+
+    let finalPosX;
+    let finalPosY;
+
+    // Position tooltip below the skillNode, aligned with its left edge
+    finalPosX = skillNodeRect.left;
+    finalPosY = skillNodeRect.bottom + padding;
+
+    // Adjust for right viewport boundary
+    if (finalPosX + tooltipWidth + padding > viewportWidth) {
+        finalPosX = viewportWidth - tooltipWidth - padding;
+    }
+    // Adjust for left viewport boundary
+    if (finalPosX < padding) {
+        finalPosX = padding;
+    }
+
+    // Adjust for bottom viewport boundary
+    if (finalPosY + tooltipHeight + padding > viewportHeight) {
+        // If it goes off screen at the bottom, try placing it above the skill node
+        finalPosY = skillNodeRect.top - tooltipHeight - padding;
+    }
+    // Adjust for top viewport boundary
+    if (finalPosY < padding) {
+        finalPosY = padding; // If it still goes off screen at the top, just place it at the top with padding
+    }
+
+    skillTooltipElement.style.left = finalPosX + 'px';
+    skillTooltipElement.style.top = finalPosY + 'px';
+}
+
+export function hideSkillTooltip() {
+    skillTooltipElement.classList.add('hidden');
+}
+
+
+export function renderSkillTree(treeType) {
+    skillTreeArea.innerHTML = ''; // Clear previous tree
+    const skillsInTree = Object.values(SKILLS).filter(skill => skill.tree === treeType);
+    const playerBase = gameState.playerStats.base;
+
+    skillsInTree.forEach(skill => {
+        const skillNode = document.createElement('div');
+        skillNode.classList.add('skill-node');
+        skillNode.dataset.skillId = skill.id; // 스킬 ID 저장
+
+        const currentLevel = playerBase.learnedSkills[skill.id] || 0;
+        const isLearned = currentLevel > 0;
+        const isMaxLevel = currentLevel >= skill.maxLevel;
+
+        const allDependenciesMet = skill.dependencies.every(depId => {
+            const depSkill = SKILLS[depId];
+            return depSkill && playerBase.learnedSkills[depId] === depSkill.maxLevel;
+        });
+
+        // 스킬 레벨 표시
+        let levelText = '';
+        if (isLearned) {
+            levelText = `${currentLevel}/${skill.maxLevel}`;
+        } else {
+            levelText = `0/${skill.maxLevel}`;
+        }
+
+        skillNode.innerHTML = `
+            <img src="${skill.icon}" alt="${skill.name}" draggable="false">
+            <span class="skill-name">${skill.name}</span>
+            <span class="skill-level">${levelText}</span>
+        `;
+
+        // 위치 설정
+        // 이전에 좋았던 상태인 (100 * x + 20) 형태로 복원합니다.
+        skillNode.style.left = `${skill.position.x * 100 + 20}px`;
+        skillNode.style.top = `${skill.position.y * 100 + 20}px`;
+
+        // 상태에 따른 클래스 추가
+        if (isMaxLevel) {
+            skillNode.classList.add('max-level');
+        } else if (isLearned) {
+            skillNode.classList.add('learned');
+            // 스킬 레벨업 가능 여부
+            if (playerBase.availableSkillPoints >= skill.costPerLevel && allDependenciesMet) {
+                skillNode.classList.add('available');
+                skillNode.classList.add('blinking'); // 레벨업 가능한 스킬은 반짝임
+            }
+        } else if (allDependenciesMet && playerBase.availableSkillPoints >= skill.costPerLevel) {
+            skillNode.classList.add('available');
+            skillNode.classList.add('blinking'); // 새로 배울 수 있는 스킬은 반짝임
+        } else {
+            skillNode.classList.add('locked');
+        }
+        
+        // 스킬 노드 클릭 이벤트 (레벨업)
+        if (!isMaxLevel && (allDependenciesMet && playerBase.availableSkillPoints >= skill.costPerLevel)) {
+            skillNode.addEventListener('click', () => learnSkill(skill.id));
+        }
+
+        // 툴팁 이벤트
+        skillNode.addEventListener('mouseenter', (e) => showSkillTooltip(e, skill.id));
+        skillNode.addEventListener('mouseleave', hideSkillTooltip);
+
+        // 액티브 스킬은 드래그 가능하게
+        if (skill.type === 'active' && isLearned) {
+            skillNode.setAttribute('draggable', true);
+            skillNode.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', skill.id);
+                e.dataTransfer.effectAllowed = 'move';
+            });
+        } else {
+            skillNode.setAttribute('draggable', false);
+        }
+
+        skillTreeArea.appendChild(skillNode);
+    });
+
+    drawSkillTreeConnections(skillsInTree, treeType); // 연결선 그리기
+}
+
+// 스킬 노드 간 연결선을 그리는 함수
+function drawSkillTreeConnections(skillsInTree, treeType) {
+    let canvas = document.getElementById(`skill-tree-canvas-${treeType}`);
+    if (!canvas) {
+        // 캔버스 요소가 없으면 새로 생성
+        const newCanvas = document.createElement('canvas');
+        newCanvas.id = `skill-tree-canvas-${treeType}`;
+        newCanvas.classList.add('skill-tree-connection-canvas');
+        skillTreeArea.prepend(newCanvas); // 스킬 노드들보다 아래에 위치
+        newCanvas.width = skillTreeArea.offsetWidth;
+        newCanvas.height = skillTreeArea.offsetHeight;
+        canvas = newCanvas;
+    } else {
+        // 기존 캔버스가 있으면 크기 업데이트 및 초기화
+        canvas.width = skillTreeArea.offsetWidth;
+        canvas.height = skillTreeArea.offsetHeight;
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // 기존 그림 지우기
+
+    const playerBase = gameState.playerStats.base;
+
+    skillsInTree.forEach(skill => {
+        skill.dependencies.forEach(depId => {
+            const depSkill = SKILLS[depId];
+            if (depSkill && depSkill.tree === treeType) { // 같은 트리 내의 종속성만
+                const fromNode = document.querySelector(`.skill-node[data-skill-id="${depId}"]`);
+                const toNode = document.querySelector(`.skill-node[data-skill-id="${skill.id}"]`);
+
+                if (fromNode && toNode) {
+                    const fromRect = fromNode.getBoundingClientRect();
+                    const toRect = toNode.getBoundingClientRect();
+                    const treeRect = skillTreeArea.getBoundingClientRect();
+
+                    const startX = fromRect.left + fromRect.width / 2 - treeRect.left;
+                    const startY = fromRect.top + fromRect.height / 2 - treeRect.top;
+                    const endX = toRect.left + toRect.width / 2 - treeRect.left;
+                    const endY = toRect.top + toRect.height / 2 - treeRect.top;
+
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(endX, endY);
+
+                    // 종속성 조건 충족 여부에 따라 선 스타일 변경
+                    const depLevel = playerBase.learnedSkills[depId] || 0;
+                    const isDependencyMet = depLevel === depSkill.maxLevel;
+
+                    if (isDependencyMet) {
+                        ctx.strokeStyle = 'lime'; // 조건 충족 시 밝은 색
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([]); // 실선
+                    } else {
+                        ctx.strokeStyle = 'gray'; // 조건 미충족 시 어두운 색
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([5, 5]); // 점선
+                    }
+                    ctx.stroke();
+                }
+            }
+        });
+    });
+    ctx.setLineDash([]); // Reset line dash to default for other drawings
+}
+
+export function renderSkillSlotManagementBar() {
+    skillSlotBarManagement.innerHTML = '';
+    for (let i = 0; i < gameState.playerStats.base.skillSlots.max; i++) {
+        const slotBox = document.createElement('div');
+        slotBox.classList.add('skill-slot-box');
+        slotBox.dataset.slotIndex = i;
+
+        const skillIdInSlot = gameState.playerStats.base.skillSlots.slots[i];
+        if (skillIdInSlot) {
+            const skill = SKILLS[skillIdInSlot];
+            if (skill) {
+                const skillImg = document.createElement('img');
+                skillImg.src = skill.icon;
+                skillImg.alt = skill.name;
+                skillImg.style.width = '50px'; // 명시적으로 크기 지정
+                skillImg.style.height = '50px'; // 명시적으로 크기 지정
+                // Make equipped skills draggable OUT of slot (to reorder or unequip)
+                skillImg.setAttribute('draggable', true);
+                skillImg.dataset.skillId = skill.id;
+                skillImg.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', skill.id);
+                    e.dataTransfer.effectAllowed = 'move';
+                    // Store the original slot index for potential removal
+                    e.dataTransfer.setData('text/slotIndex', i.toString());
+                });
+                slotBox.appendChild(skillImg);
+
+                // 스킬 레벨 표시 (새로 추가)
+                const skillLevel = gameState.playerStats.base.learnedSkills[skillIdInSlot] || 0;
+                const levelSpan = document.createElement('span');
+                levelSpan.classList.add('skill-slot-level');
+                levelSpan.textContent = skillLevel;
+                slotBox.appendChild(levelSpan);
+
+                // 툴팁 이벤트
+                slotBox.addEventListener('mouseenter', (e) => showSkillTooltip(e, skill.id));
+                slotBox.addEventListener('mouseleave', hideSkillTooltip);
+
+            }
+        } else {
+            slotBox.textContent = i + 1; // Display slot number
+        }
+
+        // Add drag & drop event listeners
+        slotBox.addEventListener('dragover', (e) => { e.preventDefault(); slotBox.classList.add('drag-over'); });
+        slotBox.addEventListener('dragleave', () => { slotBox.classList.remove('drag-over'); });
+        slotBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            slotBox.classList.remove('drag-over');
+            const skillId = e.dataTransfer.getData('text/plain');
+            const sourceSlotIndexStr = e.dataTransfer.getData('text/slotIndex'); // Get source slot if dragging from another slot
+            const targetSlotIndex = parseInt(slotBox.dataset.slotIndex);
+            
+            // Call gameLogic.equipSkillToSlot (new function to be created)
+            equipSkillToSlot(skillId, targetSlotIndex, sourceSlotIndexStr ? parseInt(sourceSlotIndexStr) : null);
+            renderSkillSlotManagementBar(); // Re-render after equip/move
+        });
+
+        // Add click listener to remove skill
+        slotBox.addEventListener('dblclick', () => {
+            const targetSlotIndex = parseInt(slotBox.dataset.slotIndex);
+            if (gameState.playerStats.base.skillSlots.slots[targetSlotIndex]) {
+                // Remove skill by setting skillId to null
+                equipSkillToSlot(null, targetSlotIndex);
+                renderSkillSlotManagementBar(); // Re-render to update UI
+            }
+        });
+
+        skillSlotBarManagement.appendChild(slotBox);
+    }
+}
+
+// Blinking Skill Button Logic
+export function updateSkillTreeButtonState() {
+    if (skillTreeBtn) { // 버튼이 존재할 경우에만 처리
+        if (gameState.playerStats.base.availableSkillPoints > 0) {
+            skillTreeBtn.classList.add('blinking');
+        } else {
+            skillTreeBtn.classList.remove('blinking');
+        }
+    }
 }

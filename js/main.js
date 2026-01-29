@@ -1,10 +1,12 @@
 // main.js
 import { gameState } from './gameState.js';
 import { preloadGameAssets, tileImageCache } from './imageLoader.js';
-import { recalculateDerivedStats, gainExperience, generateRandomItem } from './gameLogic.js';
-import { updateStatusDisplay, initUI, drawGame } from './ui.js'; // Import drawGame
+import { recalculateDerivedStats, gainExperience, generateRandomItem, playerTurn, monsterTurn, setCombatButtonsEnabled, endCombat, toggleAutoAttack } from './gameLogic.js';
+import { updateStatusDisplay, initUI, drawGame, updateSkillTreeButtonState } from './ui.js'; // Import drawGame, updateSkillTreeButtonState
+import { SKILLS } from './skills.js'; // Import SKILLS for initial skill setup
 import { transitionMap } from './map.js';
 import { addEventListeners } from './eventHandlers.js';
+import { startGameLoop } from './gameLoop.js'; // 게임 루프 추가
 import { gameCanvas } from './domElements.js';
 import { BIOMES } from './constants.js'; // Import BIOMES
 import { forestTiles, iceTiles, caveTiles, volcanicTiles } from './tiles.js'; // Import all tile sets
@@ -20,8 +22,8 @@ const TILESETS_MAP = {
 window.onload = () => {
     initUI();
 
-    gameCanvas.width = 800;
-    gameCanvas.height = 800;
+    gameCanvas.width = 850;
+    gameCanvas.height = 850;
     
     addEventListeners();
     
@@ -39,9 +41,15 @@ window.onload = () => {
             gameState.playerStats.base.hp = gameState.playerStats.derived.maxHp;
             gameState.playerStats.base.mp = gameState.playerStats.derived.maxMp;
 
+            // Initial player skill setup is now handled in gameState.js
+            // gameState.playerStats.base.learnedSkills[SKILLS.powerStrike.id] = 1; // Not needed if already in gameState.js
+
+            
             updateStatusDisplay();
+            updateSkillTreeButtonState(); // Initial call to update skill button state
             transitionMap('initial');
             drawGame(); // Initial draw after map generation and transition
+            startGameLoop(); // 게임 루프 시작
         })
         .catch(error => {
             console.error("Failed to load game assets:", error);
