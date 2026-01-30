@@ -1,5 +1,5 @@
 // gameState.js
-import { INVENTORY_SIZE } from './constants.js';
+import { INVENTORY_SIZE } from './gameSettings.js';
 
 export const gameState = {
     playerStats: {

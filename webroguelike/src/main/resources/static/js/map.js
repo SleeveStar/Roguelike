@@ -5,11 +5,12 @@ import {
     MONSTER_SPAWN_COUNT,
     HEALING_BLOCK_CHANCE,
     WANDERING_MERCHANT_CHANCE,
-    MERCHANT_STOCK_SIZE,
-    MERCHANT_ITEMS,
-    RARITY_CONFIG,
-    BIOMES
-} from './constants.js';
+    MERCHANT_STOCK_SIZE
+} from './gameSettings.js';
+import { RARITY_CONFIG } from './itemConstants.js';
+import { BIOMES } from './monsterConstants.js';
+import { MERCHANT_ITEMS } from './merchantConstants.js';
+import { recoverDungeonState } from './dungeonState.js';
 
 import {
     getRandomEmptyTile,
@@ -20,7 +21,8 @@ import {
     validateMapGrid
 } from './utils.js';
 
-import { generateMonster, generateRandomItem, calculateSellPrice } from './gameLogic.js';
+import { generateMonster } from './monsterGenerationLogic.js';
+import { generateRandomItem, calculateSellPrice } from './itemManagement.js';
 import { generateWfcMap } from './wfc.js';
 import { drawGame, logCombatMessage } from './ui.js';
 import { gameCanvas } from './domElements.js';
@@ -429,6 +431,8 @@ export async function transitionMap(direction) {
         const anchorY = Math.floor(gameState.player.y / TILE_SIZE);
 
         await generateMap();
+
+        recoverDungeonState(); // 맵 전환 시 던전 상태 회복/변동 트리거
 
         const SAFE_SPAWN_OPTIONS = { minReachableTiles: 20, maxTries: 30 };
 

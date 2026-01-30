@@ -1,14 +1,16 @@
 // main.js
 import { gameState } from './gameState.js';
 import { preloadGameAssets, tileImageCache } from './imageLoader.js';
-import { recalculateDerivedStats, gainExperience, generateRandomItem, playerTurn, monsterTurn, setCombatButtonsEnabled, endCombat, toggleAutoAttack } from './gameLogic.js';
+import { recalculateDerivedStats, gainExperience } from './playerProgression.js';
+import { generateRandomItem } from './itemManagement.js';
+import { playerTurn, monsterTurn, setCombatButtonsEnabled, endCombat, toggleAutoAttack } from './combatLogic.js';
 import { updateStatusDisplay, initUI, drawGame, updateSkillTreeButtonState } from './ui.js'; // Import drawGame, updateSkillTreeButtonState
 import { SKILLS } from './skills.js'; // Import SKILLS for initial skill setup
 import { transitionMap } from './map.js';
 import { addEventListeners } from './eventHandlers.js';
 import { startGameLoop } from './gameLoop.js'; // 게임 루프 추가
 import { gameCanvas } from './domElements.js';
-import { BIOMES } from './constants.js'; // Import BIOMES
+import { BIOMES } from './monsterConstants.js'; // Import BIOMES
 import { forestTiles, iceTiles, caveTiles, volcanicTiles } from './tiles.js'; // Import all tile sets
 
 // Map biome key to actual tile set object for initial load

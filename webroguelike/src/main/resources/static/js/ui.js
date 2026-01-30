@@ -1,6 +1,7 @@
 // ui.js
 import { gameState } from './gameState.js';
-import { learnSkill, equipSkillToSlot, useSkill, playerTurn, monsterTurn, setCombatButtonsEnabled, endCombat, toggleAutoAttack } from './gameLogic.js'; // Import gameLogic functions
+import { learnSkill, equipSkillToSlot } from './playerProgression.js';
+import { useSkill, setCombatButtonsEnabled } from './combatLogic.js'; // Import gameLogic functions
 import {
     ctx, inventoryOverlayElement, itemTooltipElement, skillTooltipElement, // skillTooltipElement 추가
     merchantOverlayElement, merchantStockGridElement, playerSellGridElement,
@@ -10,7 +11,9 @@ import {
     skillTreeModal, closeSkillTreeModal, skillPointsDisplay, skillTreeTabs, skillTreeArea, skillSlotBarManagement, skillSlotBoxes, tabBtns, battleButtons, battleAttackBtn, battleAutoAttackBtn, battleRunAwayBtn // New Skill Tree UI elements & battle buttons for renderCombatSkillBar
 } from './domElements.js';
 import { SKILLS, MONSTER_SKILLS } from './skills.js'; // Import SKILLS and MONSTER_SKILLS
-import { TILE_SIZE, RARITY_CONFIG, AFFIX_TYPES, INVENTORY_SIZE, EQUIPMENT_SETS, BIOMES, ESCAPE_CHANCE } from './constants.js'; // Added ESCAPE_CHANCE
+import { TILE_SIZE, INVENTORY_SIZE, ESCAPE_CHANCE } from './gameSettings.js';
+import { RARITY_CONFIG, AFFIX_TYPES, EQUIPMENT_SETS } from './itemConstants.js';
+import { BIOMES } from './monsterConstants.js';
 import { playerImage, goldIconImage, healingBlockImage, monsterImageCache, tileImageCache, getCurrentActiveTileSet } from './imageLoader.js';
 
 export function initUI() {
@@ -674,25 +677,22 @@ export function createTooltipContent(item, title, equippedSetCounts = {}) {
 
 export function showItemTooltip(event, item) {
     let equippedItem = null;
+    // Determine equipped item for comparison
     if (item.slot === 'ring') {
-        equippedItem = gameState.playerStats.equipment.ring1;
-        if (equippedItem === item && gameState.playerStats.equipment.ring2) {
+        // Special handling for rings: compare with ring1 and ring2
+        if (gameState.playerStats.equipment.ring1 === item) {
             equippedItem = gameState.playerStats.equipment.ring2;
-        } else if (equippedItem !== item && gameState.playerStats.equipment.ring2 === item) {
+        } else if (gameState.playerStats.equipment.ring2 === item) {
             equippedItem = gameState.playerStats.equipment.ring1;
-        } else if (equippedItem === item) {
-            equippedItem = null;
         }
+        // If the hovered item is not equipped in either ring slot, equippedItem remains null
     } else {
-        equippedItem = gameState.playerStats.equipment[item.slot];
-    }
-
-    if (item.slot !== 'ring' && equippedItem === item) {
-        equippedItem = null;
-    } else if (item.slot === 'ring') {
-        if (gameState.playerStats.equipment.ring1 === item) equippedItem = gameState.playerStats.equipment.ring2;
-        else if (gameState.playerStats.equipment.ring2 === item) equippedItem = gameState.playerStats.equipment.ring1;
-        else equippedItem = null;
+        // For other slots, directly compare with the equipped item in that slot
+        if (gameState.playerStats.equipment[item.slot] === item) {
+            equippedItem = null; // If the hovered item is the equipped one, don't show comparison
+        } else {
+            equippedItem = gameState.playerStats.equipment[item.slot];
+        }
     }
 
     // Calculate equipped set counts for passing to createTooltipContent
@@ -704,40 +704,55 @@ export function showItemTooltip(event, item) {
         }
     }
 
-    itemTooltipElement.innerHTML = createTooltipContent(item, 'Hovered', equippedSetCounts) + createTooltipContent(equippedItem, 'Equipped', equippedSetCounts);
-    itemTooltipElement.classList.remove('hidden');
-    itemTooltipElement.style.opacity = 1;
+    // Generate tooltip content
+    let tooltipHtml = createTooltipContent(item, 'Hovered', equippedSetCounts);
+    if (equippedItem) {
+        tooltipHtml += '<div class="tooltip-comparison-separator">--- 장착 아이템 ---</div>';
+        tooltipHtml += createTooltipContent(equippedItem, 'Equipped', equippedSetCounts);
+    }
 
-    setTimeout(() => {
+    itemTooltipElement.innerHTML = tooltipHtml;
+    itemTooltipElement.classList.remove('hidden');
+    itemTooltipElement.style.opacity = 1; // Make visible for size calculation
+
+    // Position tooltip
+    // Use requestAnimationFrame to ensure layout is updated before calculations
+    requestAnimationFrame(() => {
         const tooltipWidth = itemTooltipElement.offsetWidth;
         const tooltipHeight = itemTooltipElement.offsetHeight;
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
 
-        const padding = 20;
+        const cursorX = event.pageX;
+        const cursorY = event.pageY;
+        const padding = 15; // Padding from cursor
 
-        let finalPosX;
-        let finalPosY;
+        let finalPosX = cursorX + padding;
+        let finalPosY = cursorY + padding;
 
-        let initialPosX = event.pageX + padding;
-        if (initialPosX + tooltipWidth + padding > viewportWidth) {
-            finalPosX = event.pageX - tooltipWidth - padding;
-        } else {
-            finalPosX = initialPosX;
+        // Check if tooltip goes off right edge
+        if (finalPosX + tooltipWidth > viewportWidth - padding) {
+            finalPosX = cursorX - tooltipWidth - padding;
         }
-        finalPosX = Math.max(padding, finalPosX);
 
-        let initialPosY = event.pageY + padding;
-        if (initialPosY + tooltipHeight + padding > viewportHeight) {
-            finalPosY = event.pageY - tooltipHeight - padding;
-        } else {
-            finalPosY = initialPosY;
+        // Check if tooltip goes off bottom edge
+        if (finalPosY + tooltipHeight > viewportHeight - padding) {
+            finalPosY = cursorY - tooltipHeight - padding;
         }
-        finalPosY = Math.max(padding, finalPosY);
 
+        // Ensure it doesn't go off top edge
+        if (finalPosY < padding) {
+            finalPosY = padding;
+        }
+
+        // Ensure it doesn't go off left edge
+        if (finalPosX < padding) {
+            finalPosX = padding;
+        }
+        
         itemTooltipElement.style.left = finalPosX + 'px';
         itemTooltipElement.style.top = finalPosY + 'px';
-    }, 0);
+    });
 }
 
 export function hideItemTooltip() {

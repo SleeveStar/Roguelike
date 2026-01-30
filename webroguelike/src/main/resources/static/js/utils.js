@@ -1,5 +1,5 @@
 // utils.js
-import { TILE_SIZE } from './constants.js';
+import { TILE_SIZE } from './gameSettings.js';
 import { gameState } from './gameState.js';
 import { getCurrentActiveTileSet } from './imageLoader.js';
 

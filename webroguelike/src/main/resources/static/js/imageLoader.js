@@ -1,10 +1,6 @@
 // imageLoader.js
-import {
-    PLAYER_IMAGE_PATH,
-    GOLD_ICON_PATH,
-    HEALING_BLOCK_IMAGE_PATH,
-    MONSTER_TYPES,
-} from './constants.js';
+import { PLAYER_IMAGE_PATH, GOLD_ICON_PATH, HEALING_BLOCK_IMAGE_PATH } from './gameSettings.js';
+import { MONSTER_TYPES } from './monsterConstants.js';
 
 export let playerImage = new Image();
 export let goldIconImage = new Image();

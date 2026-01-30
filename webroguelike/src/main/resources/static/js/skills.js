@@ -1,4 +1,4 @@
-import { applyStatusEffect } from './gameLogic.js';
+import { applyStatusEffect } from './combatLogic.js';
 import { logCombatMessage } from './ui.js';
 
 export const SKILLS = {

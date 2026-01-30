@@ -1,8 +1,11 @@
 // eventHandlers.js
 import { gameState } from './gameState.js';
-import { TILE_SIZE, ESCAPE_CHANCE, HEALING_BLOCK_RECOVERY_PERCENT } from './constants.js';
+import { TILE_SIZE, ESCAPE_CHANCE, HEALING_BLOCK_RECOVERY_PERCENT } from './gameSettings.js';
 import { gameCanvas, inventoryBtn, closeInventoryBtn, closeMerchantBtn, allocateButtons, itemTooltipElement, bagGridElement, eqSlotElements, skillTreeModal, closeSkillTreeModal, skillTreeBtn, inventoryOverlayElement, battleAttackBtn, battleAutoAttackBtn, battleRunAwayBtn } from './domElements.js'; // Updated DOM element imports
-import { playerTurn, monsterTurn, startCombat, endCombat, allocateStatPoint, openMerchantUI, closeMerchantUI, equipItem, unequipItem, setCombatButtonsEnabled, toggleAutoAttack } from './gameLogic.js'; // Removed hideLevelUpModal
+import { playerTurn, monsterTurn, startCombat, endCombat, setCombatButtonsEnabled, toggleAutoAttack, useSkill } from './combatLogic.js';
+import { allocateStatPoint } from './playerProgression.js';
+import { openMerchantUI, closeMerchantUI } from './merchantLogic.js';
+import { equipItem, unequipItem } from './itemManagement.js'; // Removed hideLevelUpModal
 import { logCombatMessage, toggleInventory, showItemTooltip, hideItemTooltip, renderBagGrid, renderEquipment, updateStatusDisplay, drawGame, showSkillTreeModal, updateSkillTreeButtonState } from './ui.js'; // Added showSkillTreeModal, updateSkillTreeButtonState
 
 import { getCurrentActiveTileSet } from './imageLoader.js'; // Import getter for active tile set
